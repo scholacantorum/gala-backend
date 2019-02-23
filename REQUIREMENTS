@@ -1,0 +1,71 @@
+In these descriptions, "host" refers to a person who bought tickets (table lead, one person out of a married couple, etc.); "guest" refers to any attendee; and "staff" refers to anyone working on the event.
+
+A.  Purchases of tickets with credit/debit card
+
+This is the web form you've already reviewed.  Note that this includes ticket purchases by phone or paper when they include a card number, because staff will process them using the same web form.  (Question: do we need to collect postal addresses?  If so, is that just for the purchaser, or is it for each seat?)
+
+B.  Purchases of tickets with other payment methods (e.g. check)
+
+Staff will need a similar web form, accessible only to them, that lets them assert payment (and describe the method of payment) without requiring a card number.
+
+C.  Pre-event reporting
+
+Staff will need a web page, accessible only to them, to see a list of all tickets purchased with corresponding details.
+
+D.  Cancel ticket and issue refund
+
+From the web page in (C), staff will need to be able to cancel tickets in case of erroneous entries.  If the tickets were purchased through (A), the card charge should be refunded.
+
+E.  Add guest names and addresses
+
+From the web page in (C), staff will need to be able to add or change names and addresses of guests (at least email, maybe also postal), in cases where the host didn't provide them at purchase.
+
+F.  Purchase descriptions
+
+Staff will need to notify the software of what items will be available for purchase or donation (including each of the FAN levels).  For each item, it will need a title (suitable for use on a receipt), the amount to charge (if predetermined, e.g. for FAN), and a tax-deductible amount.
+
+G.  Paddle number assignment
+
+Shortly before the event, staff will need to notify the software of which guest has which paddle number.
+
+H.  Generate labels for programs
+
+We will need a label for each guest, giving name, paddle number, and table
+number.  Staff will need software that can generate these labels (or a data
+file for some external label-making system).
+
+I.  Generate check in form
+
+We will need a check in form for each guest, with space for contact information
+and payment information (but not credit card information; we'll swipe that).
+Staff will need software that can print these forms, pre-filled with information
+collected in (A), (B), and (E).
+
+J.  Check in
+
+Staff will need a web page for use at event check in, accessible only to them.  From this web page they should be able to add or change guest names, contact information, and payment methods.  (Some of this might be entered after check in, from the forms printed in (I).)  This page should be able to handle couples or groups checking in as a unit.
+
+K.  Purchase/donation during event
+
+Staff will need a web page, accessible only to them, to use during the event to record purchases and donations.  It should record the item purchased, the amount paid (if not supplied in (F)), and the paddle number of the purchaser.  It should be able to handle recording multiple purchasers of the same item efficiently, with a list of paddle numbers (e.g. for FAN donations).  The purchasable items were listed in (F), but it probably has to be possible to add new ones during the event, e.g. for donations of unexpected amounts.  Each purchase will be assigned the default payment method for that guest, but it must be possible to override it and use alternate payment methods on a per-purchase basis.
+
+L.  Check out
+
+Staff will need a web page for use at event check out, accessible only to them.  It should allow adding or changing the payment method for a guest.  It should also allow recording a non-card payment by a departing guest.
+
+M.  Post-event charges
+
+On command from staff, the software should automatically issue card charges for all purchases/donations made during the event by guests whose payment method is card-on-file.  It would also send email receipts.
+
+N.  Post-event reporting
+
+Staff will need a web page, accessible only to them, which shows all purchases, donations, and charges.
+
+O.  Post-event charging
+
+From the web page in (N), staff should be able to add payment methods, record payments, and issue charges for any purchases and donations by guests whose payment method we did not get during the event.
+
+P.  Cancel purchase / refund
+
+From the web page in (N), staff should be able to cancel a payment or donation, and if it was charged to a card, refund the charge.
+
