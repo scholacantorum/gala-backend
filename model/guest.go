@@ -79,6 +79,7 @@ INSERT OR REPLACE INTO guest (id, name, sortname, email, address, city, state, z
 	}
 	if obidder != g.Bidder {
 		je.MarkBidderToGuest()
+		updateBidderNumbers(tx, je)
 	}
 	if oparty != 0 && oparty != g.PartyID {
 		FetchParty(tx, oparty).deleteIfEmpty(tx, je)
@@ -86,6 +87,7 @@ INSERT OR REPLACE INTO guest (id, name, sortname, email, address, city, state, z
 	}
 	if oparty != g.PartyID {
 		je.MarkParty(g.PartyID)
+		updateBidderNumbers(tx, je)
 	}
 }
 

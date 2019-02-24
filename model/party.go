@@ -59,6 +59,7 @@ func (p *Party) Save(tx *sqlx.Tx, je *JournalEntry) {
 	}
 	if otableID != p.TableID {
 		je.MarkTable(p.TableID)
+		updateBidderNumbers(tx, je)
 	}
 }
 

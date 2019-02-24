@@ -2,6 +2,6 @@ private
 gala.db
 run.lock
 server.log
-db/seed.sql
+db/seed*.sql
 cert.pem
 key.pem

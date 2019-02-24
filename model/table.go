@@ -22,10 +22,16 @@ type Table struct {
 // journal.
 func (t *Table) Save(tx *sqlx.Tx, je *JournalEntry) {
 	var (
-		res sql.Result
-		nid int64
-		err error
+		res   sql.Result
+		otnum int
+		nid   int64
+		err   error
 	)
+	if t.ID != 0 {
+		if err = tx.QueryRow(`SELECT num FROM gtable WHERE id=?`, t.ID).Scan(&otnum); err != nil {
+			panic(err)
+		}
+	}
 	res, err = tx.Exec(`INSERT OR REPLACE INTO gtable (id, x, y, num) VALUES (?,?,?,?)`, t.ID, t.X, t.Y, t.Number)
 	if err != nil {
 		panic(err)
@@ -38,6 +44,9 @@ func (t *Table) Save(tx *sqlx.Tx, je *JournalEntry) {
 		}
 	}
 	je.MarkTable(t.ID)
+	if t.Number != otnum {
+		updateBidderNumbers(tx, je)
+	}
 }
 
 // Populate adds computed data to the table prior to its inclusion in a journal

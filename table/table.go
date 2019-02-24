@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/jmoiron/sqlx"
-
 	"github.com/scholacantorum/gala-backend/db"
 	"github.com/scholacantorum/gala-backend/journal"
 	"github.com/scholacantorum/gala-backend/model"
@@ -76,61 +74,11 @@ func saveTable(w *request.ResponseWriter, r *request.Request, table *model.Table
 		if from != nil {
 			from.Number = 0
 			from.Save(r.Tx, &je)
-			updateBidderNumbers(r.Tx, &je, from)
 		}
 	}
 	body.Save(r.Tx, &je)
-	if body.Number != table.Number {
-		updateBidderNumbers(r.Tx, &je, &body)
-	}
 	journal.Log(r, &je)
 	w.CommitNoContent(r)
-}
-
-// updateBidderNumbers updates the bidder numbers of all guests at the specified
-// table.
-func updateBidderNumbers(tx *sqlx.Tx, je *model.JournalEntry, table *model.Table) {
-	var (
-		guests  []*model.Guest
-		bidder  int
-		bidders = make(map[db.ID]int)
-	)
-	model.FetchPartiesAtTable(tx, table.ID, func(p *model.Party) {
-		model.FetchGuestsInParty(tx, p.ID, func(g *model.Guest) {
-			if table.Number == 0 { // remove bidder numbers when removing table
-				g.Bidder = 0
-				g.Save(tx, je)
-			} else {
-				gcopy := *g
-				guests = append(guests, &gcopy)
-			}
-		})
-	})
-	if table.Number == 0 { // already handled these above
-		return
-	}
-	bidder = table.Number * 10
-	for _, g := range guests { // assign to self-payers first
-		if g.PayerID == 0 {
-			g.Bidder = bidder
-			g.Save(tx, je)
-			bidders[g.ID] = bidder
-			bidder++
-		}
-	}
-	for _, g := range guests { // then to non-self-payers
-		if g.PayerID != 0 {
-			if b := bidders[g.PayerID]; b != 0 {
-				// Their payer is at the same table; share
-				// bidder numbers.
-				g.Bidder = b
-			} else {
-				g.Bidder = bidder
-				bidder++
-			}
-			g.Save(tx, je)
-		}
-	}
 }
 
 // serveRepositionTables handles POST /table/reposition.  It takes a JSON array
