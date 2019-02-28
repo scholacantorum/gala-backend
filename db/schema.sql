@@ -62,7 +62,10 @@ CREATE TABLE guest (
 
     -- Bidder number for the guest, or 0 if not yet assigned.  Should be unique
     -- except in cases where one guest delegates payment to another; in that
-    -- case the two *may* have the same bidder number.
+    -- case the two *may* have the same bidder number.  Note that this is
+    -- presented to the user in hexadecimal, because sometimes there are tables
+    -- with more than 10 bidders.  Bidder numbers for table 12 (decimal) will
+    -- range from 0x120 to 0x12F.
     bidder integer NOT NULL DEFAULT 0,
 
     -- Stripe customer ID, if this guest is a customer in Stripe (otherwise

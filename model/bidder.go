@@ -29,7 +29,7 @@ func updateBidderNumbersAtTable(tx *sqlx.Tx, je *JournalEntry, table *Table) {
 				g.Bidder = 0
 				g.Save(tx, je)
 				je.MarkBidderToGuest()
-			case g.Bidder%10 == table.Number: // valid bidder number for table
+			case g.Bidder/16 == tableNumberToBidderBase(table.Number): // valid bidder number for table
 				bidders[g.ID] = g.Bidder
 				used[g.Bidder] = true
 			default: // bidder number doesn't match table
@@ -62,8 +62,11 @@ func updateBidderNumbersAtTable(tx *sqlx.Tx, je *JournalEntry, table *Table) {
 	}
 }
 func updateBidderNumberNextAvail(used map[int]bool, table int) (bidder int) {
-	for bidder = table * 10; used[bidder]; bidder++ {
+	for bidder = tableNumberToBidderBase(table) * 16; used[bidder]; bidder++ {
 	}
 	used[bidder] = true
 	return bidder
+}
+func tableNumberToBidderBase(tnum int) int {
+	return (tnum/10)*16 + (tnum % 10)
 }
