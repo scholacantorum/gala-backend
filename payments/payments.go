@@ -33,6 +33,7 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 		status      int
 		description string
 		je          model.JournalEntry
+		onum        int
 		err         error
 		now         = time.Now().Format(time.RFC3339)
 		seenPID     = map[db.ID]bool{}
@@ -96,11 +97,11 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 	}
 	switch {
 	case body.StripeSource != "":
-		status, description = chargeExistingCard(payer, "cardOnFile", total)
+		onum, status, description = chargeExistingCard(payer, "cardOnFile", total)
 	case body.CardSource != "":
-		status, description = chargeNewCard(r, &je, payer, body.CardSource, total)
+		onum, status, description = chargeNewCard(r, &je, payer, body.CardSource, total)
 	default:
-		status, description = 200, body.OtherMethod
+		onum, status, description = 0, 200, body.OtherMethod
 	}
 	if status != 200 {
 		log.Printf("ServePayment charge failed %d %s", status, description)
@@ -116,6 +117,9 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 	}
 	je.MarkGuest(payer.ID)
 	journal.Log(r, &je)
+	if onum != 0 {
+		sendChargeReceipt(r, onum, payer, purchases)
+	}
 	w.CommitNoContent(r)
 	return
 
@@ -125,24 +129,22 @@ ERROR:
 
 func chargeNewCard(
 	r *request.Request, je *model.JournalEntry, payer *model.Guest, cardSource string, total int,
-) (status int, description string) {
+) (onum, status int, description string) {
 	if status, description = gstripe.FindOrCreateCustomer(payer, cardSource); status != 200 {
-		return status, description
+		return 0, status, description
 	}
 	payer.UseCard = true
 	payer.Save(r.Tx, je)
 	return chargeExistingCard(payer, "cardEntry", total)
 }
 
-func chargeExistingCard(payer *model.Guest, payType string, total int) (status int, description string) {
-	var onum int
-
+func chargeExistingCard(payer *model.Guest, payType string, total int) (onum, status int, description string) {
 	if onum = gstripe.GetScholaOrderNumber(); onum == 0 {
-		return 500, ""
+		return 0, 500, ""
 	}
 	status, description = gstripe.ChargeStripe(payer, payType, "Gala Purchase", "gala-purchase", onum, total/100, total)
 	if status == 200 {
 		description = fmt.Sprintf("Schola Order #%d", onum)
 	}
-	return status, description
+	return onum, status, description
 }
