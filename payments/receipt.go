@@ -72,7 +72,7 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err = cmd.Start(); err != nil {
-		log.Printf("register: can't start send-email: %s", err)
+		log.Printf("receipt: can't start send-email: %s", err)
 		return
 	}
 	fmt.Fprintf(pipe, `From: Schola Cantorum Web Site <admin@scholacantorum.org>
@@ -86,6 +86,9 @@ Subject: Schola Cantorum Order #%d
 	// Render the email template.
 	emailTemplate.Execute(pipe, &emailData)
 	pipe.Close()
+	if err = cmd.Wait(); err != nil {
+		log.Printf("receipt: send-email failed: %s", err)
+	}
 }
 
 var tableTemplate = `
