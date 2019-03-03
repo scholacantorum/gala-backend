@@ -2,7 +2,7 @@ package payments
 
 import (
 	"fmt"
-	"html"
+	"html/template"
 	"io"
 	"log"
 	"os"
@@ -14,15 +14,54 @@ import (
 )
 
 func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchases []*model.Purchase) {
+	type purchase struct {
+		Item   string
+		Bidder string
+		Amount int
+		Value  int
+	}
+	var emailData struct {
+		Payer           string
+		EventTitle      string
+		EventDate       string
+		MultipleBidders bool
+		TotalValue      int
+		TotalAmount     int
+		Deductible      int
+		Purchases       []purchase
+	}
 	var (
-		emailTo     []string
-		cmd         *exec.Cmd
-		pipe        io.WriteCloser
-		items       []*model.Item
-		totalAmount int
-		totalValue  int
-		err         error
+		emailTo []string
+		cmd     *exec.Cmd
+		pipe    io.WriteCloser
+		err     error
 	)
+
+	// Fill in the template data.
+	emailData.Payer = payer.Name
+	emailData.EventTitle = config.GalaTitle
+	emailData.EventDate = config.GalaDate
+	emailData.Purchases = make([]purchase, len(purchases))
+	for i, p := range purchases {
+		var item = model.FetchItem(r.Tx, p.ItemID)
+		emailData.Purchases[i] = purchase{
+			Item:   item.Name,
+			Bidder: model.FetchGuest(r.Tx, p.GuestID).Name,
+			Amount: p.Amount / 100,
+			Value:  item.Value / 100,
+		}
+		if item.Value > p.Amount {
+			emailData.Purchases[i].Value = p.Amount / 100
+		}
+		if emailData.Purchases[i].Bidder != emailData.Purchases[0].Bidder {
+			emailData.MultipleBidders = true
+		}
+		emailData.TotalAmount += emailData.Purchases[i].Amount
+		emailData.TotalValue += emailData.Purchases[i].Value
+	}
+	emailData.Deductible = emailData.TotalAmount - emailData.TotalValue
+
+	// Start the email.
 	emailTo = append([]string{}, config.EmailTo...)
 	emailTo = append(emailTo, payer.Email)
 	cmd = exec.Command("/home/scsv/bin/send-email", emailTo...)
@@ -36,63 +75,94 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 		log.Printf("register: can't start send-email: %s", err)
 		return
 	}
-	items = make([]*model.Item, len(purchases))
-	for i, purchase := range purchases {
-		items[i] = model.FetchItem(r.Tx, purchase.ItemID)
-		totalAmount += purchase.Amount
-		if items[i].Value < purchase.Amount {
-			totalValue += items[i].Value
-		} else {
-			totalValue += purchase.Amount
-		}
-	}
 	fmt.Fprintf(pipe, `From: Schola Cantorum Web Site <admin@scholacantorum.org>
 To: %s <%s>
 Reply-To: info@scholacantorum.org
 Subject: Schola Cantorum Order #%d
 
-<p>Dear %s,</p><p>We confirm the following purchases and donations made at %s on %s:</p><table><thead><tr><th style="text-align:left">Item</th><th style="text-align:right">Amount Paid</th>`,
-		payer.Name, payer.Email, onum, html.EscapeString(payer.Name), config.GalaTitle, config.GalaDate)
-	if totalValue > 0 {
-		fmt.Fprint(pipe, `<th style="text-align:right">Value Received</th></tr>`)
-	}
-	fmt.Fprint(pipe, `</thead><tbody>`)
-	for i, purchase := range purchases {
-		if totalValue > 0 {
-			if items[i].Value < purchase.Amount {
-				fmt.Fprintf(pipe, `<tr><td>%s</td><td style="text-align:right">$%d</td><td style="text-align:right">$%d</td></tr>`,
-					html.EscapeString(items[i].Name), purchase.Amount/100, items[i].Value/100)
-			} else {
-				fmt.Fprintf(pipe, `<tr><td>%s</td><td style="text-align:right">$%d</td><td style="text-align:right">$%d</td></tr>`,
-					html.EscapeString(items[i].Name), purchase.Amount/100, purchase.Amount/100)
-			}
-		} else {
-			fmt.Fprintf(pipe, `<tr><td>%s</td><td style="text-align:right">$%d</td></tr>`,
-				html.EscapeString(items[i].Name), purchase.Amount/100)
-		}
-	}
-	if len(purchases) > 1 {
-		if totalValue > 0 {
-			fmt.Fprintf(pipe, `<tr><td style="font-weight:bold;text-align:right">TOTAL</td><td style="font-weight:bold;text-align:right">$%d</td><td style="font-weight:bold;text-align:right">$%d</td></tr>`,
-				totalAmount/100, totalValue/100)
-		} else {
-			fmt.Fprintf(pipe, `<tr><td style="font-weight:bold;text-align:right">TOTAL</td><td style="font-weight:bold;text-align:right">$%d</td></tr>`,
-				totalAmount/100)
-		}
-	}
-	fmt.Fprint(pipe, `</tbody></table>`)
-	switch {
-	case totalValue == totalAmount:
-		fmt.Fprintf(pipe, `<p>The total value received is $%d.  Your purchases are not tax deductible.</p>`,
-			totalValue/100)
-	case totalValue > 0:
-		fmt.Fprintf(pipe, `<p>The total value of received is $%d.  This amount is not tax deductible.  The balance of your payment, $%d, is a tax deductible donation.</p>`,
-			totalValue/100, (totalAmount-totalValue)/100)
-	default:
-		fmt.Fprintf(pipe, `<p>No goods or services were provided in return for this payment.  Your payment of $%d is a tax deductible donation.</p>`,
-			totalAmount/100)
-	}
-	fmt.Fprint(pipe, `<p>Thank you for your support of Schola Cantorum!</p>`)
-	fmt.Fprint(pipe, `<p>Sincerely yours,<br>Schola Cantorum</p><p>Web: <a href="https://scholacantorum.org">scholacantorum.org</a><br>Email: <a href="mailto:info@scholacantorum.org">info@scholacantorum.org</a><br>Phone: (650) 254-1700</p>`)
+`,
+		payer.Name, payer.Email, onum)
+
+	// Render the email template.
+	emailTemplate.Execute(pipe, &emailData)
 	pipe.Close()
+}
+
+var tableTemplate = `
+<table>
+  <thead>
+    <tr>
+      <th style="text-align:left">Item</th>
+      {{ if .MultipleBidders }}
+	<th style="text-align:left;padding-left:1em">Bidder</th>
+      {{ end }}
+      <th style="text-align:right;padding-left:1em">Amount Paid</th>
+      {{ if .TotalValue }}
+        <th style="text-align:right;padding-left:1em">Value Received</th>
+      {{ end }}
+    </tr>
+  </thead>
+  <tbody>
+    {{ range .Purchases }}
+      <tr>
+        <td>{{ .Item }}</td>
+	{{ if $.MultipleBidders }}
+	  <td style="padding-left:1em">{{ .Bidder }}</td>
+	{{ end }}
+	<td style="text-align:right">{{ .Amount }}</td>
+	{{ if $.TotalValue }}
+	  <td style="text-align:right">{{ .Value }}</td>
+	{{ end }}
+      </tr>
+    {{ end }}
+    {{ if gt (len .Purchases ) 1 }}
+      <tr>
+        {{ if .MultipleBidders }}
+	  <td></td>
+	{{ end }}
+        <td style="font-weight:bold;text-align:right">TOTAL</td>
+	<td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalAmount }}</td>
+	{{ if .TotalValue }}
+	  <td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalValue }}</td>
+	{{ end }}
+      </tr>
+    {{ end }}
+  </tbody>
+</table>
+{{ if eq .TotalAmount .TotalValue }}
+  <p>
+    The total value received is ${{ .TotalValue }}.
+    Your purchases are not tax deductible.
+  </p>
+{{ else if .TotalValue }}
+  <p>
+    The total value received is ${{ .TotalValue }}.
+    This amount is not tax deductible.
+    The balance of your payment, ${{ .Deductible }}, is a tax-deductible donation.
+  </p>
+{{ else }}
+  <p>
+    No goods or services were provided in return for this payment.
+    Your payment of ${{ .TotalAmount }} is a tax deductible donation.
+  </p>
+{{ end }}
+`
+var emailTemplate = template.Must(template.New("email").Parse(`
+<p>Dear {{ .Payer }},</p>
+<p>We confirm the following purchases and donations made at {{ .EventTitle }} on {{ .EventDate }}:</p>
+{{ template "table" . }}
+<p>Thank you for your support of Schola Cantorum!</p>
+<p>
+  Sincerely yours,<br>
+  Schola Cantorum
+</p>
+<p>
+  Web: <a href="https://scholacantorum.org">scholacantorum.org</a><br>
+  Email: <a href="mailto:info@scholacantorum.org">info@scholacantorum.org</a><br>
+  Phone: (650) 254-1700
+</p>
+`))
+
+func init() {
+	template.Must(emailTemplate.New("table").Parse(tableTemplate))
 }
