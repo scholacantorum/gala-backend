@@ -101,7 +101,7 @@ var tableTemplate = `
       {{ end }}
       <th style="text-align:right;padding-left:1em">Amount Paid</th>
       {{ if .TotalValue }}
-        <th style="text-align:right;padding-left:1em">Value Received</th>
+        <th style="text-align:right;padding-left:1em">Estimated Value</th>
       {{ end }}
     </tr>
   </thead>
@@ -132,23 +132,13 @@ var tableTemplate = `
     {{ end }}
   </tbody>
 </table>
-{{ if eq .TotalAmount .TotalValue }}
-  <p>
-    The total value received is ${{ .TotalValue }}.
-    Your purchases are not tax deductible.
-  </p>
-{{ else if .TotalValue }}
-  <p>
-    The total value received is ${{ .TotalValue }}.
-    This amount is not tax deductible.
-    The balance of your payment, ${{ .Deductible }}, is a tax-deductible donation.
-  </p>
-{{ else }}
-  <p>
-    No goods or services were provided in return for this payment.
-    Your payment of ${{ .TotalAmount }} is a tax deductible donation.
-  </p>
-{{ end }}
+<p>
+  Schola Cantorum is a 501(c)(3) tax-exempt organization.
+  Our federal tax ID number is 94‑2597822.
+  {{ if not .TotalValue }}
+    No goods or services were provided in return for your donation.
+  {{ end }}
+</p>
 `
 var emailTemplate = template.Must(template.New("email").Parse(`
 <p>Dear {{ .Payer }},</p>

@@ -15,6 +15,7 @@ type Table struct {
 	X       int     `json:"x" db:"x"`
 	Y       int     `json:"y" db:"y"`
 	Number  int     `json:"number" db:"num"`
+	Name    string  `json:"name" db:"name"`
 	Parties []db.ID `json:"parties" db:"-"`
 }
 
@@ -32,7 +33,7 @@ func (t *Table) Save(tx *sqlx.Tx, je *JournalEntry) {
 			panic(err)
 		}
 	}
-	res, err = tx.Exec(`INSERT OR REPLACE INTO gtable (id, x, y, num) VALUES (?,?,?,?)`, t.ID, t.X, t.Y, t.Number)
+	res, err = tx.Exec(`INSERT OR REPLACE INTO gtable (id, x, y, num, name) VALUES (?,?,?,?,?)`, t.ID, t.X, t.Y, t.Number, t.Name)
 	if err != nil {
 		panic(err)
 	}

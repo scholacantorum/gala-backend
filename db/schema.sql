@@ -11,7 +11,10 @@ CREATE TABLE gtable (
     y integer NOT NULL DEFAULT 0,
 
     -- Table number (visible).  Zero means not assigned.
-    num integer NOT NULL DEFAULT 0
+    num integer NOT NULL DEFAULT 0,
+
+    -- Table name.
+    name text NOT NULL DEFAULT ''
 );
 
 -- The party table has a row for each party of guests that should be seated
