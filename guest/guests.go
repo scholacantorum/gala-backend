@@ -43,6 +43,7 @@ func addGuest(w *request.ResponseWriter, r *request.Request) {
 	type addGuestBody struct {
 		model.Guest
 		Ticket     string
+		NumGuests  int
 		CardSource string
 		PayingFor  []db.ID
 	}
@@ -119,6 +120,20 @@ func addGuest(w *request.ResponseWriter, r *request.Request) {
 		purchase.PaymentDescription = body.Ticket
 	}
 	purchase.Save(r.Tx, &je)
+
+	// If they have guests, register them too.
+	for i := 1; i <= body.NumGuests; i++ {
+		var g = model.Guest{
+			Name:     fmt.Sprintf("%s Guest #%d", body.Name, i),
+			PartyID:  body.PartyID,
+			Requests: body.Requests,
+			Sortname: fmt.Sprintf("%s Guest #%d", body.Sortname, i),
+		}
+		g.Save(r.Tx, &je)
+		purchase.GuestID = g.ID
+		purchase.ID = 0
+		purchase.Save(r.Tx, &je)
+	}
 	journal.Log(r, &je)
 	w.CommitNoContent(r)
 }
