@@ -110,6 +110,12 @@ func FindOrCreateCustomer(guest *model.Guest, cardSource string) (status int, er
 		}
 	}
 
+	// If the customer doesn't have a card, don't save their customer ID.
+	// We'll get it again when they add a card.
+	if cust.DefaultSource == nil {
+		return 200, ""
+	}
+
 	// Return the customer ID, card number, and address.
 	guest.StripeCustomer = cust.ID
 	guest.StripeSource = cust.DefaultSource.ID
