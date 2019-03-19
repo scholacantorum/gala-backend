@@ -96,6 +96,17 @@ func FindOrCreateCustomer(guest *model.Guest, cardSource string) (status int, er
 	// Create a new customer if none was found.
 	if cust == nil {
 		var cparams = stripe.CustomerParams{Description: &guest.Name, Email: &guest.Email}
+		if guest.Address != "" {
+			cparams.Shipping = &stripe.CustomerShippingDetailsParams{
+				Name: &guest.Name,
+				Address: &stripe.AddressParams{
+					Line1:      &guest.Address,
+					City:       &guest.City,
+					State:      &guest.State,
+					PostalCode: &guest.Zip,
+				},
+			}
+		}
 		cparams.SetSource(cardSource)
 		cparams.AddExpand("default_source")
 		cust, err = customer.New(&cparams)
