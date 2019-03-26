@@ -12,6 +12,7 @@ var DatabaseFile string
 var EmailTo []string
 var RegisterAllowOrigin string
 var ScholaOrderNumberURL string
+var Sendmail string
 
 var TicketSKU = "ticket-2019-04-26"
 var GalaTitle = "¡Fiesta! An Evening in Old California"
@@ -29,6 +30,7 @@ func init() {
 	// EmailTo = []string{"info@scholacantorum.org", "admin@scholacantorum.org"}
 	// RegisterAllowOrigin = "https://scholacantorum.org"
 	// ScholaOrderNumberURL = "https://scholacantorum.org/backend/allocate-order-number"
+	// Sendmail = "/home/scsv/bin/send-email"
 
 	// For test mode:
 	CheckWebSocketOrigin = func(_ *http.Request) bool { return true }
@@ -37,7 +39,9 @@ func init() {
 	RegisterAllowOrigin = "https://new.scholacantorum.org"
 	ScholaOrderNumberURL = "https://new.scholacantorum.org/backend/allocate-order-number"
 	stripe.Key = private.StripeTestSecretKey
+	Sendmail = "/home/scsv/bin/send-email"
 
 	// For development mode:
 	// RegisterAllowOrigin = "*"
+	// Sendmail = "/Users/stever/go/bin/send-email"
 }

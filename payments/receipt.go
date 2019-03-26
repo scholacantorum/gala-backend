@@ -24,6 +24,7 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 		Payer           string
 		EventTitle      string
 		EventDate       string
+		Card            string
 		MultipleBidders bool
 		TotalValue      int
 		TotalAmount     int
@@ -41,6 +42,7 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 	emailData.Payer = payer.Name
 	emailData.EventTitle = config.GalaTitle
 	emailData.EventDate = config.GalaDate
+	emailData.Card = payer.StripeDescription
 	emailData.Purchases = make([]purchase, len(purchases))
 	for i, p := range purchases {
 		var item = model.FetchItem(r.Tx, p.ItemID)
@@ -64,7 +66,7 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 	// Start the email.
 	emailTo = append([]string{}, config.EmailTo...)
 	emailTo = append(emailTo, payer.Email)
-	cmd = exec.Command("/home/scsv/bin/send-email", emailTo...)
+	cmd = exec.Command(config.Sendmail, emailTo...)
 	if pipe, err = cmd.StdinPipe(); err != nil {
 		log.Printf("receipt: can't pipe to send-email: %s", err)
 		return
@@ -142,7 +144,7 @@ var tableTemplate = `
 `
 var emailTemplate = template.Must(template.New("email").Parse(`
 <p>Dear {{ .Payer }},</p>
-<p>We confirm the following purchases and donations made at {{ .EventTitle }} on {{ .EventDate }}:</p>
+<p>We confirm the following purchases and donations made at {{ .EventTitle }} on {{ .EventDate }}, charged to {{ .Card }}:</p>
 {{ template "table" . }}
 <p>Thank you for your support of Schola Cantorum!</p>
 <p>
