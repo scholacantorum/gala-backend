@@ -23,6 +23,8 @@ func ServeGuests(w *request.ResponseWriter, r *request.Request) {
 	switch head {
 	case "":
 		serveGuests(w, r)
+	case "checkin-forms":
+		serveCheckinForms(w, r)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
