@@ -19,6 +19,8 @@ func ServePurchases(w *request.ResponseWriter, r *request.Request) {
 	switch head {
 	case "":
 		servePurchases(w, r)
+	case "export":
+		serveExportPurchases(w, r)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
