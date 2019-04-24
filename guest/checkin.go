@@ -1,6 +1,7 @@
 package guest
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -51,11 +52,12 @@ func serveCheckinForms(w *request.ResponseWriter, r *request.Request) {
 	// Create a PDF document.
 	pdf = gofpdf.New("L", "pt", "Letter", "")
 	pdf.SetMargins(0, 0, 0)
+	pdf.SetAutoPageBreak(false, 0)
 	for i := range left {
 		pdf.AddPage()
-		renderGuest(pdf, logo, banner, left[i], 0)
+		renderGuest(pdf, r, logo, banner, left[i], 0)
 		if right[i] != nil {
-			renderGuest(pdf, logo, banner, right[i], 396) // 5.5 inches
+			renderGuest(pdf, r, logo, banner, right[i], 396) // 5.5 inches
 		}
 	}
 	if err := pdf.Error(); err != nil {
@@ -66,7 +68,9 @@ func serveCheckinForms(w *request.ResponseWriter, r *request.Request) {
 	pdf.Output(w)
 }
 
-func renderGuest(pdf *gofpdf.Fpdf, logo, banner *gofpdf.ImageInfoType, guest *model.Guest, offset float64) {
+func renderGuest(pdf *gofpdf.Fpdf, r *request.Request, logo, banner *gofpdf.ImageInfoType, guest *model.Guest, offset float64) {
+	party := model.FetchParty(r.Tx, guest.PartyID)
+	table := model.FetchTable(r.Tx, party.TableID)
 	pdf.ImageOptions("logo1.png", 36+offset, 36, 144, 0, false, gofpdf.ImageOptions{}, 0, "")
 	pdf.ImageOptions("logo2.png", 216+offset, 36, 144, 0, false, gofpdf.ImageOptions{}, 0, "")
 	pdf.SetFont("helvetica", "B", 24)
@@ -119,4 +123,7 @@ func renderGuest(pdf *gofpdf.Fpdf, logo, banner *gofpdf.ImageInfoType, guest *mo
 	pdf.Cell(324, 20, "Postal")
 	pdf.MoveTo(36+offset, 513)
 	pdf.CellFormat(324, 20, "Thank you for supporting Schola Cantorum!", "", 0, "TC", false, 0, "")
+	pdf.MoveTo(36+offset, 573)
+	pdf.SetFontSize(12)
+	pdf.Cell(324, 20, fmt.Sprintf("Table %d Bidder %x", table.Number, guest.Bidder))
 }
