@@ -104,7 +104,7 @@ func renderLabel(pdf *gofpdf.Fpdf, guest *model.Guest, table *model.Table, col, 
 	pdf.CellFormat(166.5, 28, guest.Name, "", 0, "TL", false, 0, "")
 	pdf.SetFont("helvetica", "", 12)
 	pdf.MoveTo(left, top+28)
-	pdf.Cellf(166.5, 12, "Table number %d", table.Number)
+	pdf.Cellf(166.5, 12, "Table %d", table.Number)
 	pdf.MoveTo(left, top+40)
-	pdf.Cellf(166.5, 12, "Bidder number %X", guest.Bidder)
+	pdf.Cellf(166.5, 12, "Bidder %X", guest.Bidder)
 }
