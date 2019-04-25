@@ -97,7 +97,7 @@ func renderPageOfLabels(pdf *gofpdf.Fpdf, r *request.Request, guests []*model.Gu
 }
 
 func renderLabel(pdf *gofpdf.Fpdf, guest *model.Guest, table *model.Table, col, row int) {
-	left := 200.25*float64(col) + 11.25
+	left := 200.25*float64(col) + 22.5
 	top := 72*float64(row) + 46
 	pdf.SetFont("helvetica", "B", 14)
 	pdf.MoveTo(left, top)
