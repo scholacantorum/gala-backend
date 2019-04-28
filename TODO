@@ -1,1 +1,27 @@
-Guest form not marked dirty when changing from None to Saved.
+We need a way to convert a registration to a donation, when it turns out that
+it's double-paid (e.g. by the table host as well as the guest), or when someone
+can't come, or so forth.
+
+We need a way to handle people who aren't attending but nonetheless are
+donating.  Or, similarly, staffers who don't have a spot at a table but still
+should have a bidder number.
+
+We need a way to resolve the creation of duplicate guests, i.e., so-and-so is
+created as their own guest but it turns out they're also table-host-guest-#5.
+
+We were not consistent on accounting for seats for non-payers like the MC, the
+entertainers, the employees, and the politician.  In some cases we called them
+comps.  In other cases, we called them guests of table hosts whose tables
+weren't otherwise filled.
+
+The code currently treats all items the same.  But for reporting purposes we
+really do want to distinguish FAN from silent auction from registration.
+
+We need to add a report with guest name and bidder number, sorted both ways.
+
+We need to add a report with auction winners.
+
+We need to add a running total of FAN donations, possibly to be projected.
+
+We should have a way to mark a purchase that is pledged to be paid by non-card,
+vs. has been paid, or vs. no idea whether it will be paid.
