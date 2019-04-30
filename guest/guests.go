@@ -27,6 +27,8 @@ func ServeGuests(w *request.ResponseWriter, r *request.Request) {
 		serveCheckinForms(w, r)
 	case "program-labels":
 		serveProgramLabels(w, r)
+	case "receipts":
+		serveReceipts(w, r)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
