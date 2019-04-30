@@ -212,8 +212,9 @@ func GetScholaOrderNumber() (onum int) {
 // ChargeStripe issues a charge to the payer's credit card.  payType should be
 // either "cardEntry" or "cardOnFile" depending on whether the card source was
 // just added to the customer or was already there.  ChargeStripe returns a
-// status of 200, 400 (card declined), or 500; and (if status==400) the error
-// message returned by Stripe.
+// status of 200, 400 (card declined), or 500.  If status==200, it returns the
+// card details.  If status==400, it returns the error message returned by
+// Stripe.
 func ChargeStripe(
 	payer *model.Guest, payType, description, sku string,
 	scholaOrder, qty, total int,
@@ -221,7 +222,7 @@ func ChargeStripe(
 	var (
 		params  *stripe.OrderParams
 		pparams *stripe.OrderPayParams
-		o       *stripe.Order
+		o, o2   *stripe.Order
 		err     error
 	)
 	// Create the order in Stripe.
@@ -252,7 +253,9 @@ func ChargeStripe(
 	// Pay the order in Stripe.
 	pparams = &stripe.OrderPayParams{Customer: &payer.StripeCustomer}
 	pparams.SetSource(payer.StripeSource)
-	_, err = order.Pay(o.ID, pparams)
+	pparams.AddExpand("charge")
+	pparams.AddExpand("charge.source")
+	o2, err = order.Pay(o.ID, pparams)
 	if err != nil {
 		// Cancel the order.
 		if _, err2 := order.Update(o.ID, &stripe.OrderUpdateParams{
@@ -270,5 +273,8 @@ func ChargeStripe(
 		log.Printf("stripe pay order %d: %s", scholaOrder, err)
 		return 500, ""
 	}
-	return 200, ""
+	errmsg = fmt.Sprintf("%s %s",
+		o2.Charge.Source.SourceObject.TypeData["brand"],
+		o2.Charge.Source.SourceObject.TypeData["last4"])
+	return 200, errmsg
 }

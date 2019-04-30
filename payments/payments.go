@@ -112,6 +112,7 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 	}
 	for _, purchase = range purchases {
 		purchase.PaymentDescription = description
+		purchase.ScholaOrder = onum
 		purchase.PaymentTimestamp = now
 		purchase.Save(r.Tx, &je)
 	}
@@ -143,8 +144,5 @@ func chargeExistingCard(payer *model.Guest, payType string, total int) (onum, st
 		return 0, 500, ""
 	}
 	status, description = gstripe.ChargeStripe(payer, payType, "Gala Purchase", "gala-purchase", onum, total/100, total)
-	if status == 200 {
-		description = fmt.Sprintf("Schola Order #%d", onum)
-	}
 	return onum, status, description
 }

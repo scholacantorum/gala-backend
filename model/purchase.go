@@ -18,6 +18,7 @@ type Purchase struct {
 	Amount             int    `json:"amount" db:"amount"`
 	PaymentTimestamp   string `json:"paymentTimestamp" db:"paymentTimestamp"`
 	PaymentDescription string `json:"paymentDescription" db:"paymentDescription"`
+	ScholaOrder        int    `json:"scholaOrder" db:"scholaOrder"`
 	HaveCard           bool   `json:"haveCard" db:"-"`
 }
 
@@ -37,8 +38,8 @@ func (p *Purchase) Save(tx *sqlx.Tx, je *JournalEntry) {
 		}
 	}
 	res, err = tx.Exec(`
-INSERT OR REPLACE INTO purchase (id, guest, payer, item, amount, paymentTimestamp, paymentDescription) VALUES (?,?,?,?,?,?,?)`,
-		p.ID, p.GuestID, p.PayerID, p.ItemID, p.Amount, p.PaymentTimestamp, p.PaymentDescription)
+INSERT OR REPLACE INTO purchase (id, guest, payer, item, amount, paymentTimestamp, paymentDescription, scholaOrder) VALUES (?,?,?,?,?,?,?,?)`,
+		p.ID, p.GuestID, p.PayerID, p.ItemID, p.Amount, p.PaymentTimestamp, p.PaymentDescription, p.ScholaOrder)
 	if err != nil {
 		panic(err)
 	}

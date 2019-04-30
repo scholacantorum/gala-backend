@@ -157,10 +157,13 @@ CREATE TABLE purchase (
     paymentTimestamp text NOT NULL DEFAULT '',
 
     -- Description of the payment method.  For credit card charges, this is
-    -- "Schola Order #1234".  For other payment methods, this is a free-form
-    -- string.  It is empty if the purchase hasn't been paid.
+    -- "Visa 2345".  For other payment methods, this is a free-form string.  It
+    -- is empty if the purchase hasn't been paid.
     paymentDescription text NOT NULL DEFAULT ''
-        CHECK((paymentDescription='') = (paymentTimestamp==''))
+        CHECK((paymentDescription='') = (paymentTimestamp=='')),
+
+    -- Schola order number, or zero if none.
+    scholaOrder integer NOT NULL DEFAULT 0
 );
 CREATE INDEX purchase_guest_idx ON purchase (guest);
 CREATE INDEX purchase_payer_idx ON purchase (payer);

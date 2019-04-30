@@ -82,7 +82,7 @@ func publicRegister(r *request.Request, je *model.JournalEntry) (status int, err
 	}
 
 	// Register the guests and record the purchases.
-	publicRegisterGuests(r, je, &host, scholaOrder, tprice, qty)
+	publicRegisterGuests(r, je, &host, errmsg, scholaOrder, tprice, qty)
 
 	// Finally, send the email.
 	publicEmailRegistrations(r, &host, scholaOrder, qty, tprice)
@@ -113,7 +113,7 @@ func publicRegisterCustomer(r *request.Request, guest *model.Guest) (qty, status
 	return qty, status, errmsg
 }
 
-func publicRegisterGuests(r *request.Request, je *model.JournalEntry, host *model.Guest, scholaOrder, tprice, qty int) {
+func publicRegisterGuests(r *request.Request, je *model.JournalEntry, host *model.Guest, card string, scholaOrder, tprice, qty int) {
 	var (
 		guest    model.Guest
 		purchase model.Purchase
@@ -123,7 +123,8 @@ func publicRegisterGuests(r *request.Request, je *model.JournalEntry, host *mode
 	purchase = model.Purchase{
 		ItemID:             1,
 		Amount:             tprice,
-		PaymentDescription: fmt.Sprintf("Schola Order #%d", scholaOrder),
+		PaymentDescription: card,
+		ScholaOrder:        scholaOrder,
 		PaymentTimestamp:   time.Now().Format(time.RFC3339),
 	}
 
