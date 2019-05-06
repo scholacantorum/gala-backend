@@ -216,9 +216,9 @@ var payerTemplate = template.Must(template.New("payer").Parse(`
     {{ range .Purchases }}
       <tr>
         <td>{{ .Item }}</td>
-        <td style="text-align:right">{{ .Value }}<sup>{{ .Note }}</sup></td>
+        <td style="text-align:right">${{ .Value }}<sup>{{ .Note }}</sup></td>
         {{ if .Amount }}
-          <td style="text-align:right">{{ .Amount }}</td>
+          <td style="text-align:right">${{ .Amount }}</td>
           <td style="padding-left:1em;white-space:nowrap">{{ .Date }}</td>
           <td style="padding-left:1em;white-space:nowrap">{{ .Method }}</td>
         {{ else }}
@@ -243,10 +243,10 @@ var payerTemplate = template.Must(template.New("payer").Parse(`
   </tbody>
 </table>
 {{ if .ShowRegistrationNote }}
-  <div><sup>*</sup> The "estimated value received" is our good faith estimate.  It may not reflect the fair market value.</div>
+  <div><sup>*</sup> The "estimated value received" for registration is our good faith estimate.  It may not reflect the fair market value.</div>
 {{ end }}
 {{ if .ShowPurchaseNote }}
-  <div><sup>†</sup> The "estimated value received" was provided by the donor.  It may not reflect the fair market value.</div>
+  <div><sup>†</sup> The "estimated value received" for auction items is provided by the donor.  It may not reflect the fair market value.</div>
 {{ end }}
 {{ if .ShowDonationNote }}
   <div><sup>§</sup> No goods or services were received in return for this donation.</div>
