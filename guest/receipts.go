@@ -38,6 +38,9 @@ func serveReceipts(w *request.ResponseWriter, r *request.Request) {
   padding-left: 2em;
   padding-bottom: 12pt;
 }
+.footer {
+  display: none;
+}
 @media print {
   html, body {
     margin: 0;
@@ -47,12 +50,26 @@ func serveReceipts(w *request.ResponseWriter, r *request.Request) {
   }
   .receipt {
     border-top: none;
-    padding: 144pt 36pt 36pt;
+    padding: 36pt;
     page-break-before: always;
+  }
+  .footer {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin-bottom: 27px;
+    font-size: 12px;
+    text-align: center;
   }
 }
 --></style></head><body>
-<p class="printthis">Please load the printer with letterhead paper and print this page.</p>
+<p class="printthis">When printed, this page will have one receipt on each sheet of paper.</p>
+<div class="footer">
+2218 Old Middlefield Way, Suite G • Mountain View CA 94043 • ScholaCantorum.org • (650) 254-1700<br>
+Info@ScholaCantorum.org • Schola Cantorum is a 501(c)(3) nonprofit organization, tax ID 94-2597822
+</div>
 `)
 	var payers []*model.Guest
 	var payerPurchases = map[db.ID][]*model.Purchase{}
@@ -201,6 +218,7 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 
 var payerTemplate = template.Must(template.New("payer").Parse(`
 <div class="receipt">
+<img src="/receipt-logo.png" style="height:72px;margin-bottom:36px">
 <p>Schola Cantorum confirms the following {{ .PurchaseTypes }} from <b>{{ .Payer }}</b>:</p>
 <table style="margin-bottom:12pt">
   <thead>
