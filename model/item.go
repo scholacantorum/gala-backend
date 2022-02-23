@@ -2,6 +2,7 @@ package model
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 
@@ -11,11 +12,12 @@ import (
 // Item represents a item that can be purchased, or a donation level.  See
 // db/schema.sql for details.
 type Item struct {
-	ID        db.ID   `json:"id" db:"id"`
-	Name      string  `json:"name" db:"name"`
-	Amount    int     `json:"amount" db:"amount"`
-	Value     int     `json:"value" db:"value"`
-	Purchases []db.ID `json:"purchases" db:"-"`
+	ID        db.ID    `json:"id" db:"id"`
+	Tag       db.IDStr `json:"tag" db:"tag"`
+	Name      string   `json:"name" db:"name"`
+	Amount    int      `json:"amount" db:"amount"`
+	Value     int      `json:"value" db:"value"`
+	Purchases []db.ID  `json:"purchases" db:"-"`
 }
 
 // Save saves an item to the database.  It also adds the item to the JSON
@@ -26,8 +28,8 @@ func (i *Item) Save(tx *sqlx.Tx, je *JournalEntry) {
 		nid int64
 		err error
 	)
-	res, err = tx.Exec(`INSERT OR REPLACE INTO item (id, name, amount, value) VALUES (?,?,?,?)`,
-		i.ID, i.Name, i.Amount, i.Value)
+	res, err = tx.Exec(`INSERT OR REPLACE INTO item (id, tag, name, amount, value) VALUES (?,?,?,?,?)`,
+		i.ID, i.Tag, i.Name, i.Amount, i.Value)
 	if err != nil {
 		panic(err)
 	}
@@ -54,6 +56,11 @@ func (i *Item) Populate(tx *sqlx.Tx) {
 func (i *Item) Delete(tx *sqlx.Tx, je *JournalEntry) {
 	tx.MustExec(`DELETE FROM item WHERE id=?`, i.ID)
 	je.MarkItem(i.ID)
+}
+
+// IsRegistration returns whether the item is a registration.
+func (i *Item) IsRegistration() bool {
+	return i.Tag == "reg" || strings.HasPrefix(string(i.Tag), "reg:")
 }
 
 // FetchItem returns the item with the specified ID.  It returns nil if the

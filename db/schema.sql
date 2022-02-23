@@ -106,11 +106,15 @@ CREATE INDEX guest_party_idx  ON guest (party);
 CREATE INDEX guest_payer_idx  ON guest (payer);
 
 -- The item table has a row for each thing that can be purchased or donated at
--- the gala: essentially each auction item and each fund-a-need level.
+-- the gala: essentially each registration type, each auction item, and each
+-- fund-a-need level.
 CREATE TABLE item (
-    -- Unique identifier of the item.  Note that the item for event registration
-    -- MUST have id=1.
+    -- Unique identifier of the item.
     id integer PRIMARY KEY,
+
+    -- Tag used to identify items programmatically.  Mainly used to find the
+    -- registration item(s).
+    tag text UNIQUE,
 
     -- Name of the item (as it should appear on receipts and in the GUI).
     name text NOT NULL,
@@ -126,8 +130,12 @@ CREATE TABLE item (
     -- are purely donations (e.g. fund-a-need levels).
     value integer NOT NULL DEFAULT 0
 );
-INSERT INTO item (id, name, amount, value)
-    VALUES (1, 'Registration', 16500, 5000);
+INSERT INTO item (id, tag, name, amount, value) VALUES
+    (1, 'reg',           'Registration (unknown entree)', 17500, 5000),
+    (2, 'reg:steak',     'Registration (Steak)',          17500, 5000),
+    (3, 'reg:salmon',    'Registration (Salmon)',         17500, 5000),
+    (4, 'reg:Jambalaya', 'Registration (Jambalaya)',      17500, 5000),
+    (5, NULL,            'Donated Registration',          17500,    0);
 
 -- The purchase table has a row for each purchase of an item.
 CREATE TABLE purchase (
@@ -160,7 +168,7 @@ CREATE TABLE purchase (
     -- "Visa 2345".  For other payment methods, this is a free-form string.  It
     -- is empty if the purchase hasn't been paid.
     paymentDescription text NOT NULL DEFAULT ''
-        CHECK((paymentDescription='') = (paymentTimestamp=='')),
+        CHECK((paymentDescription='') = (paymentTimestamp='')),
 
     -- Schola order number, or zero if none.
     scholaOrder integer NOT NULL DEFAULT 0

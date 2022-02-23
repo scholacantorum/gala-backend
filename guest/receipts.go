@@ -135,7 +135,7 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 			Value:    item.Value / 100,
 			Quantity: 1,
 		}
-		if p.ItemID == 1 {
+		if item.IsRegistration() {
 			purchase.Note = "*"
 			receiptData.ShowRegistrationNote = true
 		} else if item.Value != 0 {
@@ -169,7 +169,7 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 	for i := 1; i < len(receiptData.Purchases); {
 		a := receiptData.Purchases[i-1]
 		b := receiptData.Purchases[i]
-		if a.ItemID == 1 && b.ItemID == 1 && a.Date == b.Date && a.Method == b.Method {
+		if a.Note == "*" && b.Note == "*" && a.Date == b.Date && a.Method == b.Method {
 			a.Amount += b.Amount
 			a.Value += b.Value
 			a.Quantity += b.Quantity

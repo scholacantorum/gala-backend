@@ -38,12 +38,12 @@ func serveExportPurchases(w *request.ResponseWriter, r *request.Request) {
 			if p.PaymentTimestamp == "" {
 				unpaid = "NOT FULLY PAID"
 			}
-			if p.ItemID == 1 {
+			item = model.FetchItem(r.Tx, p.ItemID)
+			if item.IsRegistration() {
 				regcount++
 				regtotal += p.Amount
 				return
 			}
-			item = model.FetchItem(r.Tx, p.ItemID)
 			if item.Value != 0 {
 				auctionItems = append(auctionItems, item.Name)
 				auctionPaid += p.Amount

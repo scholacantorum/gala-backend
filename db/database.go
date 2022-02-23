@@ -68,3 +68,29 @@ func (id *ID) Scan(value interface{}) error {
 	}
 	return nil
 }
+
+// IDStr is a wrapper around string that stores "" in the database as NULL.
+type IDStr string
+
+// Value converts the ID to database format.
+func (id IDStr) Value() (driver.Value, error) {
+	if id == "" {
+		return nil, nil
+	}
+	return string(id), nil
+}
+
+// Scan converts the ID from database format.
+func (id *IDStr) Scan(value interface{}) error {
+	switch value := value.(type) {
+	case nil:
+		*id = ""
+	case string:
+		*id = IDStr(value)
+	case []byte:
+		*id = IDStr(string(value))
+	default:
+		return fmt.Errorf("scanning %T into db.IDStr, should be string or nil", value)
+	}
+	return nil
+}
