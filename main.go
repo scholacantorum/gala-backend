@@ -209,7 +209,6 @@ func authChecker(w *request.ResponseWriter, r *request.Request) {
 func router(w *request.ResponseWriter, r *request.Request) {
 	var head string
 
-	log.Printf("routing %s", r.URL.Path)
 	head, r.URL.Path = request.ShiftPath(r.URL.Path)
 	switch head {
 	case "all":
