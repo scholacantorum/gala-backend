@@ -116,6 +116,7 @@ func main() {
 // IP address, username, method, URI, status code, response length, and elapsed
 // time of the request.
 func handler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "gala.scholacantorum.org")
 	if !requireSecure(w, r) {
 		return
 	}
