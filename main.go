@@ -157,6 +157,7 @@ func requireSecure(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	// In all other cases, it's an error.
+	log.Printf("reject insecure connection")
 	w.WriteHeader(http.StatusForbidden)
 	return false
 }
@@ -196,6 +197,7 @@ func authChecker(w *request.ResponseWriter, r *request.Request) {
 	r.URL.Path = path.Clean(r.URL.Path)
 	if r.URL.Path != "/login" && r.URL.Path != "/register" {
 		if !authn.ValidSession(r) {
+			log.Printf("reject unauthorized")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -207,6 +209,7 @@ func authChecker(w *request.ResponseWriter, r *request.Request) {
 func router(w *request.ResponseWriter, r *request.Request) {
 	var head string
 
+	log.Printf("routing %s", r.URL.Path)
 	head, r.URL.Path = request.ShiftPath(r.URL.Path)
 	switch head {
 	case "all":
