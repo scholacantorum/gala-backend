@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
-	"net/http"
 	"time"
 
 	"github.com/scholacantorum/gala-backend/request"
@@ -47,7 +46,7 @@ func CreateSession(w *request.ResponseWriter, r *request.Request) {
 		token, r.UserID, time.Now().Add(6*time.Hour)); err != nil {
 		panic(err)
 	}
-	http.SetCookie(w, &http.Cookie{Name: "session", Path: "/", Value: token})
+	w.Header().Set("Auth", token)
 }
 
 // RandomToken returns a random token string, used for various purposes.

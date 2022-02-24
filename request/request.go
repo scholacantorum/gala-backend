@@ -20,8 +20,6 @@ type Request struct {
 func NewRequest(httpr *http.Request) *Request {
 	var rr Request
 	rr.Request = httpr
-	if cookie, err := httpr.Cookie("session"); err == nil && cookie != nil {
-		rr.SessionToken = cookie.Value
-	}
+	rr.SessionToken = httpr.Header.Get("Auth")
 	return &rr
 }
