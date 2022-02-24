@@ -119,6 +119,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "https://gala.scholacantorum.org")
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Headers", "auth")
+	w.Header().Set("Access-Control-Expose-Headers", "auth")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 	if r.Method == http.MethodOptions {
 		w.WriteHeader(http.StatusNoContent)
