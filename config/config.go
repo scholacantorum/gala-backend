@@ -25,6 +25,9 @@ var GalaGuestInfoDeadline = "April 15"
 
 func init() {
 	// For live mode:
+	CheckWebSocketOrigin = func(r *http.Request) bool {
+		return r.Header.Get("Origin") == "https://gala.scholacantorum.org"
+	}
 	stripe.Key = private.StripeLiveSecretKey
 	DatabaseFile = "/home/scmvwork/gala.db"
 	EmailTo = []string{"info@scholacantorum.org", "admin@scholacantorum.org"}
