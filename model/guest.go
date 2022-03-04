@@ -27,6 +27,7 @@ type Guest struct {
 	StripeDescription  string  `json:"stripeDescription" db:"stripeDescription"`
 	UseCard            bool    `json:"useCard" db:"useCard"`
 	PayerID            db.ID   `json:"payer" db:"payer"`
+	Entree             string  `json:"entree" db:"entree"`
 	PayingFor          []db.ID `json:"payingFor" db:"-"`
 	Purchases          []db.ID `json:"purchases" db:"-"`
 	PayingForPurchases []db.ID `json:"payingForPurchases" db:"-"`
@@ -57,9 +58,9 @@ func (g *Guest) Save(tx *sqlx.Tx, je *JournalEntry) {
 	}
 	res, err = tx.Exec(`
 INSERT OR REPLACE INTO guest (id, name, sortname, email, address, city, state, zip, phone, requests, party, bidder, stripeCustomer,
-    stripeSource, stripeDescription, useCard, payer) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+    stripeSource, stripeDescription, useCard, payer, entree) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		g.ID, g.Name, g.Sortname, g.Email, g.Address, g.City, g.State, g.Zip, g.Phone, g.Requests, g.PartyID, g.Bidder,
-		g.StripeCustomer, g.StripeSource, g.StripeDescription, g.UseCard, g.PayerID)
+		g.StripeCustomer, g.StripeSource, g.StripeDescription, g.UseCard, g.PayerID, g.Entree)
 	if err != nil {
 		panic(err)
 	}

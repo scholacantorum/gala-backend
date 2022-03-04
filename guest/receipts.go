@@ -135,7 +135,7 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 			Value:    item.Value / 100,
 			Quantity: 1,
 		}
-		if item.IsRegistration() {
+		if item.ID == 1 { // registration
 			purchase.Note = "*"
 			receiptData.ShowRegistrationNote = true
 		} else if item.Value != 0 {

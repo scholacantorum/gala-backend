@@ -39,7 +39,7 @@ func serveExportPurchases(w *request.ResponseWriter, r *request.Request) {
 				unpaid = "NOT FULLY PAID"
 			}
 			item = model.FetchItem(r.Tx, p.ItemID)
-			if item.IsRegistration() {
+			if item.ID == 1 { // registration
 				regcount++
 				regtotal += p.Amount
 				return

@@ -99,7 +99,10 @@ CREATE TABLE guest (
     -- yet).
     payer integer REFERENCES guest
         CHECK (payer IS NULL OR NOT useCard)
-        CHECK (payer!=id)
+        CHECK (payer!=id),
+
+    -- Entree is the guest's choice of entree.
+    entree text NOT NULL DEFAULT ''
 );
 CREATE INDEX guest_bidder_idx ON guest (bidder);
 CREATE INDEX guest_party_idx  ON guest (party);
@@ -130,12 +133,8 @@ CREATE TABLE item (
     -- are purely donations (e.g. fund-a-need levels).
     value integer NOT NULL DEFAULT 0
 );
-INSERT INTO item (id, tag, name, amount, value) VALUES
-    (1, 'reg',           'Registration (unknown entree)', 17500, 5000),
-    (2, 'reg:steak',     'Registration (Steak)',          17500, 5000),
-    (3, 'reg:salmon',    'Registration (Salmon)',         17500, 5000),
-    (4, 'reg:Jambalaya', 'Registration (Jambalaya)',      17500, 5000),
-    (5, NULL,            'Donated Registration',          17500,    0);
+INSERT INTO item (id, name, amount, value) VALUES
+    (1, 'Registration', 17500, 5000);
 
 -- The purchase table has a row for each purchase of an item.
 CREATE TABLE purchase (

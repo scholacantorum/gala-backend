@@ -1,30 +1,33 @@
 package guest
 
 import (
+	"encoding/json"
 	"fmt"
-	"html"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/scholacantorum/gala-backend/config"
-	"github.com/scholacantorum/gala-backend/gstripe"
 	"github.com/scholacantorum/gala-backend/journal"
 	"github.com/scholacantorum/gala-backend/model"
 	"github.com/scholacantorum/gala-backend/request"
 )
+
+type orderInfo struct {
+	id       int
+	customer string
+	card     string
+	pmtmeth  string
+}
 
 // ServeRegister handles requests starting with /register.  The only supported
 // one is POST /register, which is called by the public Schola web site when
 // someone registers for the Gala.
 func ServeRegister(w *request.ResponseWriter, r *request.Request) {
 	var (
-		status  int
+		oinfo   *orderInfo
 		message string
 		je      model.JournalEntry
 	)
@@ -37,84 +40,114 @@ func ServeRegister(w *request.ResponseWriter, r *request.Request) {
 		return
 	}
 	w.Header().Set("Access-Control-Allow-Origin", config.RegisterAllowOrigin)
-	w.Header().Set("Content-Type", "text/plain")
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	status, message = publicRegister(r, &je)
-	if status != 200 {
-		w.WriteHeader(status)
+	// Charge the order in Schola's ordering system.
+	if oinfo, message = chargePublicRegister(r); message != "" {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, message)
 		return
 	}
+	if oinfo == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	// Save the registration(s) in our database.
+	publicRegister(r, oinfo, &je)
 	journal.Log(r, &je)
+	if err := r.Tx.Commit(); err != nil {
+		panic(err)
+	}
+	// The registration form is expecting to get an ID back; that's its
+	// indication of success.
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintf(w, `{"id":%d}`, oinfo.id)
 	w.CommitNoContent(r)
 }
 
-func publicRegister(r *request.Request, je *model.JournalEntry) (status int, errmsg string) {
+func chargePublicRegister(r *request.Request) (*orderInfo, string) {
+	type responsedata struct {
+		Error    string `json:"error"`
+		ID       int    `json:"id"`
+		Customer string `json:"customer"`
+		Payments []struct {
+			Method   string `json:"method"`
+			StripePM string `json:"stripePM"`
+		} `json:"payments"`
+	}
 	var (
-		host        model.Guest
-		scholaOrder int    // Schola order number
-		tprice      int    // ticket item price (cents)
-		tsku        string // ticket item SKU
-		qty         int    // quantity ordered
+		resp  *http.Response
+		rdata responsedata
+		err   error
 	)
-
-	// Get customer.  This also ensures we are connected to Stripe.
-	if qty, status, errmsg = publicRegisterCustomer(r, &host); status != 200 {
-		return status, errmsg
+	r.ParseForm() // just in case not already done
+	r.Form.Set("saveForReuse", "true")
+	resp, err = http.PostForm(config.OrdersURL+"/payapi/order", r.Form)
+	if err != nil {
+		log.Printf("Post registration form to orders failed: %s", err)
+		return nil, ""
 	}
-
-	// Next get ticket data (price and SKU).
-	tprice = model.FetchItem(r.Tx, 1).Amount
-	tsku = config.TicketSKU
-
-	// Get an order number from the public site back end.
-	if scholaOrder = gstripe.GetScholaOrderNumber(); scholaOrder == 0 {
-		return 500, ""
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		log.Printf("Post registration form to orders failed: %d %s", resp.StatusCode, resp.Status)
+		return nil, ""
 	}
-
-	// Issue the credit card charge.
-	status, errmsg = gstripe.ChargeStripe(&host, "cardEntry", "Gala Registration", tsku, scholaOrder, qty, tprice*qty)
-	if status != 200 {
-		return status, errmsg
+	if err = json.NewDecoder(resp.Body).Decode(&rdata); err != nil {
+		log.Printf("Can't parse orders response: %s", err)
+		return nil, ""
 	}
-
-	// Register the guests and record the purchases.
-	publicRegisterGuests(r, je, &host, errmsg, scholaOrder, tprice, qty)
-
-	// Finally, send the email.
-	publicEmailRegistrations(r, &host, scholaOrder, qty, tprice)
-	return 200, ""
+	if rdata.Error != "" {
+		return nil, rdata.Error
+	}
+	if len(rdata.Payments) != 1 {
+		log.Printf("Order has %d payments, expected 1", len(rdata.Payments))
+		return nil, ""
+	}
+	return &orderInfo{rdata.ID, rdata.Customer, rdata.Payments[0].Method, rdata.Payments[0].StripePM}, ""
 }
 
-func publicRegisterCustomer(r *request.Request, guest *model.Guest) (qty, status int, errmsg string) {
-	var (
-		err        error
-		cardSource = r.FormValue("cardSource")
-	)
-	guest.Name = strings.TrimSpace(r.FormValue("name1"))
-	guest.Email = strings.TrimSpace(r.FormValue("email1"))
-	guest.Address = strings.TrimSpace(r.FormValue("address"))
-	guest.City = strings.TrimSpace(r.FormValue("city"))
-	guest.State = strings.TrimSpace(r.FormValue("state"))
-	guest.Zip = strings.TrimSpace(r.FormValue("zip"))
-	if qty, err = strconv.Atoi(r.FormValue("qty")); err != nil || qty < 1 {
-		log.Print("register-fail invalid qty")
-		return 0, 500, ""
+func validatePublicRegister(r *request.Request) (guests []*model.Guest) {
+	var guest *model.Guest
+
+	guest = &model.Guest{
+		Name:     strings.TrimSpace(r.FormValue("line1.guestName")),
+		Email:    strings.TrimSpace(r.FormValue("line1.guestEmail")),
+		Address:  strings.TrimSpace(r.FormValue("address")),
+		City:     strings.TrimSpace(r.FormValue("city")),
+		State:    strings.TrimSpace(r.FormValue("state")),
+		Zip:      strings.TrimSpace(r.FormValue("zip")),
+		Phone:    strings.TrimSpace(r.FormValue("phone")),
+		Requests: strings.TrimSpace(r.FormValue("cNote")),
+		Entree:   strings.TrimSpace(r.FormValue("line1.option")),
 	}
-	if guest.Name == "" || guest.Email == "" || guest.Address == "" || guest.City == "" || guest.State == "" ||
-		guest.Zip == "" || cardSource == "" {
-		log.Print("register-fail missing details")
-		return 0, 500, ""
+	if guest.Name == "" {
+		guest.Name = r.FormValue("name")
 	}
-	status, errmsg = gstripe.FindOrCreateCustomer(guest, cardSource)
-	return qty, status, errmsg
+	if guest.Email == "" {
+		guest.Email = r.FormValue("email")
+	}
+	guests = append(guests, guest)
+	for idx := 2; true; idx++ {
+		prefix := fmt.Sprintf("line%d.", idx)
+		if r.FormValue(prefix+"product") == "" {
+			break
+		}
+		guest = &model.Guest{
+			Name:   strings.TrimSpace(prefix + "guestName"),
+			Email:  strings.TrimSpace(prefix + "guestEmail"),
+			Entree: strings.TrimSpace(prefix + "option"),
+		}
+		guests = append(guests, guest)
+	}
+	return guests
 }
 
-func publicRegisterGuests(r *request.Request, je *model.JournalEntry, host *model.Guest, card string, scholaOrder, tprice, qty int) {
+func publicRegister(r *request.Request, oinfo *orderInfo, je *model.JournalEntry) {
 	var (
+		host     model.Guest
 		guest    model.Guest
 		purchase model.Purchase
 	)
@@ -122,35 +155,53 @@ func publicRegisterGuests(r *request.Request, je *model.JournalEntry, host *mode
 	// Set up the purchases.
 	purchase = model.Purchase{
 		ItemID:             1,
-		Amount:             tprice,
-		PaymentDescription: card,
-		ScholaOrder:        scholaOrder,
+		PaymentDescription: oinfo.card,
+		ScholaOrder:        oinfo.id,
 		PaymentTimestamp:   time.Now().Format(time.RFC3339),
 	}
 
 	// Register the host.
+	if host.Name = strings.TrimSpace(r.FormValue("line1.guestName")); host.Name == "" {
+		host.Name = strings.TrimSpace(r.FormValue("name"))
+	}
+	if host.Email = strings.TrimSpace(r.FormValue("line1.guestEmail")); host.Email == "" {
+		host.Email = strings.TrimSpace(r.FormValue("email"))
+	}
+	host.Address = strings.TrimSpace(r.FormValue("address"))
+	host.City = strings.TrimSpace(r.FormValue("city"))
+	host.State = strings.TrimSpace(r.FormValue("state"))
+	host.Zip = strings.TrimSpace(r.FormValue("zip"))
+	host.Phone = strings.TrimSpace(r.FormValue("phone"))
+	host.Entree = strings.TrimSpace(r.FormValue("line1.option"))
 	host.Sortname = sortname(host.Name)
-	host.Requests = strings.TrimSpace(r.FormValue("requests"))
+	host.Requests = strings.TrimSpace(r.FormValue("cNote"))
 	host.Save(r.Tx, je)
 	purchase.PayerID = host.ID
 	purchase.GuestID = host.ID
+	purchase.Amount, _ = strconv.Atoi(r.FormValue("line1.price"))
 	purchase.Save(r.Tx, je)
 
 	// Register the other guests.
 	guest.PartyID = host.PartyID
 	guest.Requests = host.Requests
-	for i := 2; i <= qty; i++ {
-		guest.Name = strings.TrimSpace(r.FormValue(fmt.Sprintf("name%d", i)))
+	for i := 2; true; i++ {
+		prefix := fmt.Sprintf("line%d.", i)
+		if r.FormValue(prefix+"product") == "" {
+			break
+		}
+		guest.Name = strings.TrimSpace(r.FormValue(prefix + "guestName"))
 		if guest.Name == "" {
 			guest.Name = fmt.Sprintf("%s Guest %d", host.Name, i-1)
 			guest.Sortname = fmt.Sprintf("%s Guest %d", host.Sortname, i-1)
 		} else {
 			guest.Sortname = sortname(guest.Name)
 		}
-		guest.Email = strings.TrimSpace(r.FormValue(fmt.Sprintf("email%d", i)))
+		guest.Email = strings.TrimSpace(r.FormValue(prefix + "guestEmail"))
+		guest.Entree = strings.TrimSpace(r.FormValue(prefix + "option"))
 		guest.ID = 0 // force new creation
 		guest.Save(r.Tx, je)
 		purchase.GuestID = guest.ID
+		purchase.Amount, _ = strconv.Atoi(r.FormValue(prefix + "price"))
 		purchase.ID = 0 // force new creation
 		purchase.Save(r.Tx, je)
 	}
@@ -177,67 +228,4 @@ func sortname(name string) string {
 		return name[idx+1:] + ", " + name[:idx] + suffix
 	}
 	return name + suffix
-}
-
-func publicEmailRegistrations(r *request.Request, host *model.Guest, scholaOrder, qty, tprice int) {
-	var (
-		emailTo   []string
-		cmd       *exec.Cmd
-		pipe      io.WriteCloser
-		missingNE bool
-		err       error
-	)
-
-	emailTo = append([]string{}, config.EmailTo...)
-	emailTo = append(emailTo, host.Email)
-	cmd = exec.Command("/home/scsv/bin/send-email", emailTo...)
-	if pipe, err = cmd.StdinPipe(); err != nil {
-		log.Printf("register: can't pipe to send-email: %s", err)
-		return
-	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err = cmd.Start(); err != nil {
-		log.Printf("register: can't start send-email: %s", err)
-		return
-	}
-
-	fmt.Fprintf(pipe, `From: Schola Cantorum Web Site <admin@scholacantorum.org>
-To: %s <%s>
-Reply-To: info@scholacantorum.org
-Subject: Schola Cantorum Order #%d
-
-<p>Dear %s,</p><p>We confirm your registration for `,
-		host.Name, host.Email, scholaOrder, html.EscapeString(host.Name))
-	if qty > 1 {
-		fmt.Fprintf(pipe, "%d seats at ", qty)
-	}
-	fmt.Fprintf(pipe, `%s, on %s, for `, config.GalaTitle, config.GalaDate)
-	if qty > 1 {
-		fmt.Fprintf(pipe, `$%d each`, tprice/100)
-	} else {
-		fmt.Fprintf(pipe, `$%d`, tprice/100)
-	}
-	fmt.Fprintf(pipe, `. This event starts at %s at %s, %s (see <a href="%s">map</a>).`,
-		config.GalaStartTime, config.GalaVenue, config.GalaAddress, config.GalaMapURL)
-	if qty > 1 {
-		fmt.Fprintf(pipe, ` The total charge to your card was $%d.`, tprice*qty/100)
-	}
-	fmt.Fprint(pipe, ` Thank you for your support of Schola Cantorum!</p>`)
-	for i := 2; i <= qty; i++ {
-		if strings.TrimSpace(r.FormValue(fmt.Sprintf("name%d", i))) == "" ||
-			strings.TrimSpace(r.FormValue(fmt.Sprintf("email%d", i))) == "" {
-			missingNE = true
-			break
-		}
-	}
-	if missingNE {
-		if qty > 2 {
-			fmt.Fprintf(pipe, `<p>Please notify us of your guests’ names and email addresses, no later than %s.  You can reply to this email with that information, or call our office at (650) 254-1700.</p>`, config.GalaGuestInfoDeadline)
-		} else {
-			fmt.Fprintf(pipe, `<p>Please notify us of your guest’s name and email address, no later than %s.  You can reply to this email with that information, or call our office at (650) 254-1700.</p>`, config.GalaGuestInfoDeadline)
-		}
-	}
-	fmt.Fprint(pipe, `<p>Sincerely yours,<br>Schola Cantorum</p><p>Web: <a href="https://scholacantorum.org">scholacantorum.org</a><br>Email: <a href="mailto:info@scholacantorum.org">info@scholacantorum.org</a><br>Phone: (650) 254-1700</p>`)
-	pipe.Close()
 }
