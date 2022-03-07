@@ -3,16 +3,13 @@ package gstripe
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"strconv"
 
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/customer"
 	"github.com/stripe/stripe-go/order"
 
-	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/model"
-	"github.com/scholacantorum/gala-backend/private"
 )
 
 func init() {
@@ -179,34 +176,6 @@ func UpdateCustomer(guest *model.Guest, cardSource string) (status int, errmsg s
 			cust.DefaultSource.SourceObject.TypeData["brand"], cust.DefaultSource.SourceObject.TypeData["last4"])
 	}
 	return 200, ""
-}
-
-// GetScholaOrderNumber returns a new order number from the Schola order number
-// sequence, guaranteed unique.  It returns zero if no order number is
-// available.
-func GetScholaOrderNumber() (onum int) {
-	var req *http.Request
-	var resp *http.Response
-	var err error
-
-	if req, err = http.NewRequest(http.MethodPost, config.ScholaOrderNumberURL, nil); err != nil {
-		panic(err)
-	}
-	req.Header.Set("Auth", private.CrossSiteKey)
-	if resp, err = http.DefaultClient.Do(req); err != nil {
-		log.Printf("schola order number: %s", err)
-		return 0
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("schola order number: %s", resp.Status)
-		return 0
-	}
-	if _, err = fmt.Fscan(resp.Body, &onum); err != nil {
-		log.Printf("schola order number: %s", err)
-		return 0
-	}
-	return onum
 }
 
 // ChargeStripe issues a charge to the payer's credit card.  payType should be

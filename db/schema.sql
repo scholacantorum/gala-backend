@@ -115,10 +115,6 @@ CREATE TABLE item (
     -- Unique identifier of the item.
     id integer PRIMARY KEY,
 
-    -- Tag used to identify items programmatically.  Mainly used to find the
-    -- registration item(s).
-    tag text UNIQUE,
-
     -- Name of the item (as it should appear on receipts and in the GUI).
     name text NOT NULL,
 

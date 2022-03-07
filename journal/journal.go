@@ -36,7 +36,10 @@ var (
 	register   = make(chan *client)
 	unregister = make(chan *client)
 	upgrader   = websocket.Upgrader{
-		CheckOrigin: config.CheckWebSocketOrigin,
+		CheckOrigin: func(r *http.Request) bool {
+			origin := config.Get("webSocketOrigin")
+			return origin == "*" || origin == r.Header.Get("Origin")
+		},
 		Error: func(w http.ResponseWriter, _ *http.Request, status int, _ error) {
 			w.WriteHeader(status)
 		},

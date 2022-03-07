@@ -140,9 +140,9 @@ func chargeNewCard(
 }
 
 func chargeExistingCard(payer *model.Guest, payType string, total int) (onum, status int, description string) {
-	if onum = gstripe.GetScholaOrderNumber(); onum == 0 {
-		return 0, 500, ""
-	}
+	//if onum = gstripe.GetScholaOrderNumber(); onum == 0 {
+		//return 0, 500, ""
+	//}
 	status, description = gstripe.ChargeStripe(payer, payType, "Gala Purchase", "gala-purchase", onum, total/100, total)
 	return onum, status, description
 }

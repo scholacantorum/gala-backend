@@ -27,6 +27,7 @@ type orderInfo struct {
 // someone registers for the Gala.
 func ServeRegister(w *request.ResponseWriter, r *request.Request) {
 	var (
+		origin  string
 		oinfo   *orderInfo
 		message string
 		je      model.JournalEntry
@@ -35,20 +36,20 @@ func ServeRegister(w *request.ResponseWriter, r *request.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	if config.RegisterAllowOrigin != "*" && r.Header.Get("Origin") != config.RegisterAllowOrigin {
+	origin = config.Get("registerOrigin")
+	if origin != "*" && r.Header.Get("Origin") != origin {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-	w.Header().Set("Access-Control-Allow-Origin", config.RegisterAllowOrigin)
+	w.Header().Set("Access-Control-Allow-Origin", origin)
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	// Charge the order in Schola's ordering system.
 	if oinfo, message = chargePublicRegister(r); message != "" {
-		w.Header().Set("Content-Type", "text/plain")
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprint(w, message)
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		json.NewEncoder(w).Encode(map[string]string{"error": message})
 		return
 	}
 	if oinfo == nil {
@@ -65,7 +66,6 @@ func ServeRegister(w *request.ResponseWriter, r *request.Request) {
 	// indication of success.
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintf(w, `{"id":%d}`, oinfo.id)
-	w.CommitNoContent(r)
 }
 
 func chargePublicRegister(r *request.Request) (*orderInfo, string) {
@@ -83,9 +83,9 @@ func chargePublicRegister(r *request.Request) (*orderInfo, string) {
 		rdata responsedata
 		err   error
 	)
-	r.ParseForm() // just in case not already done
+	r.ParseMultipartForm(1048576) // just in case not already done
 	r.Form.Set("saveForReuse", "true")
-	resp, err = http.PostForm(config.OrdersURL+"/payapi/order", r.Form)
+	resp, err = http.PostForm(config.Get("ordersURL")+"/payapi/order", r.Form)
 	if err != nil {
 		log.Printf("Post registration form to orders failed: %s", err)
 		return nil, ""
@@ -175,6 +175,9 @@ func publicRegister(r *request.Request, oinfo *orderInfo, je *model.JournalEntry
 	host.Entree = strings.TrimSpace(r.FormValue("line1.option"))
 	host.Sortname = sortname(host.Name)
 	host.Requests = strings.TrimSpace(r.FormValue("cNote"))
+	host.StripeCustomer = oinfo.customer
+	host.StripeSource = oinfo.pmtmeth
+	host.StripeDescription = oinfo.card
 	host.Save(r.Tx, je)
 	purchase.PayerID = host.ID
 	purchase.GuestID = host.ID

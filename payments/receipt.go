@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/model"
@@ -40,8 +41,8 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 
 	// Fill in the template data.
 	emailData.Payer = payer.Name
-	emailData.EventTitle = config.GalaTitle
-	emailData.EventDate = config.GalaDate
+	emailData.EventTitle = config.Get("galaTitle")
+	emailData.EventDate = config.Get("galaDate")
 	emailData.Card = payer.StripeDescription
 	emailData.Purchases = make([]purchase, len(purchases))
 	for i, p := range purchases {
@@ -64,9 +65,9 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 	emailData.Deductible = emailData.TotalAmount - emailData.TotalValue
 
 	// Start the email.
-	emailTo = append([]string{}, config.EmailTo...)
+	emailTo = append([]string{}, strings.Split(config.Get("emailTo"), ",")...)
 	emailTo = append(emailTo, payer.Email)
-	cmd = exec.Command(config.Sendmail, emailTo...)
+	cmd = exec.Command(config.Get("sendmail"), emailTo...)
 	if pipe, err = cmd.StdinPipe(); err != nil {
 		log.Printf("receipt: can't pipe to send-email: %s", err)
 		return

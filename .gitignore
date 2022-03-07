@@ -1,7 +1,8 @@
 private
-gala.db
+*.db
 run.lock
 server.log
 db/seed*.sql
 cert.pem
 key.pem
+config.json
