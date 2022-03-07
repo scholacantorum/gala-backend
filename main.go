@@ -32,6 +32,7 @@ import (
 	"github.com/jmoiron/sqlx"
 
 	"github.com/scholacantorum/gala-backend/authn"
+	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/db"
 	"github.com/scholacantorum/gala-backend/guest"
 	"github.com/scholacantorum/gala-backend/item"
@@ -116,7 +117,7 @@ func main() {
 // IP address, username, method, URI, status code, response length, and elapsed
 // time of the request.
 func handler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "https://gala.scholacantorum.org")
+	w.Header().Set("Access-Control-Allow-Origin", config.Get("registerOrigin"))
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Headers", "auth")
 	w.Header().Set("Access-Control-Expose-Headers", "auth")
