@@ -7,7 +7,7 @@
   "galaAddress": "35 South Second Street, Campbell",
   "galaMapURL": "https://www.google.com/maps/place/Villa+Ragusa/@37.286705,-121.9462738,15z/data=!4m5!3m4!1s0x0:0x657b9c0fec66d741!8m2!3d37.2867704!4d-121.9461649",
   "galaGuestInfoDeadline": "April 10",
-  "webSocketOrigin": "https://gala.scholacantorum.org",
+  "webSocketOrigin": "https://gala-test.scholacantorum.org",
   "databaseFile": "/home/scsvwork/gala.scsv.work/gala.db",
   "emailTo": "admin@scholacantorum.org",
   "registerOrigin": "https://new.scholacantorum.org",

@@ -117,7 +117,11 @@ func main() {
 // IP address, username, method, URI, status code, response length, and elapsed
 // time of the request.
 func handler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", config.Get("registerOrigin"))
+	origin := config.Get("webSocketOrigin")
+	if r.URL.Path == "/register" {
+		origin = config.Get("registerOrigin")
+	}
+	w.Header().Set("Access-Control-Allow-Origin", origin)
 	w.Header().Set("Access-Control-Allow-Credentials", "true")
 	w.Header().Set("Access-Control-Allow-Headers", "auth")
 	w.Header().Set("Access-Control-Expose-Headers", "auth")
