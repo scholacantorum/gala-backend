@@ -8,10 +8,11 @@
   "galaMapURL": "https://www.google.com/maps/place/Villa+Ragusa/@37.286705,-121.9462738,15z/data=!4m5!3m4!1s0x0:0x657b9c0fec66d741!8m2!3d37.2867704!4d-121.9461649",
   "galaGuestInfoDeadline": "April 10",
   "webSocketOrigin": "*",
-  "stripeKey": "sk_test_tbg6ecx3uEEwbTxImUIE0LVG",
   "databaseFile": "gala.db",
   "emailTo": "admin@scholacantorum.org",
   "registerOrigin": "*",
   "sendmail": "/Users/stever/go/bin/send-email",
-  "ordersURL": "http://localhost:8100"
+  "ordersURL": "http://localhost:8100",
+  "httpsListen": ":9002",
+  "wssListen": ":9003"
 }

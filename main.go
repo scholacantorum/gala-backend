@@ -55,8 +55,8 @@ func main() {
 		listener2 net.Listener
 		wg        sync.WaitGroup
 		err       error
-		server    = http.Server{Addr: ":9000", Handler: http.HandlerFunc(handler)}
-		server2   = http.Server{Addr: ":9001", Handler: http.HandlerFunc(handler)}
+		server    = http.Server{Addr: config.Get("httpsListen"), Handler: http.HandlerFunc(handler)}
+		server2   = http.Server{Addr: config.Get("wssListen"), Handler: http.HandlerFunc(handler)}
 		sig       = make(chan os.Signal, 1)
 	)
 	if logFH, err = os.OpenFile("server.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644); err != nil {
