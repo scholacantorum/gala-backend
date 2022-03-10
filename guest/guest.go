@@ -184,6 +184,7 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 	guest.StripeSource = body.StripeSource
 	guest.StripeDescription = body.StripeDescription
 	guest.UseCard = body.UseCard
+	guest.Entree = body.Entree
 	guest.Save(r.Tx, &je)
 	model.FetchGuests(r.Tx, func(g *model.Guest) {
 		if !bodyPayingFor[g.ID] && g.PayerID == guest.ID {

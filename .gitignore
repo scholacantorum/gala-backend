@@ -6,3 +6,4 @@ db/seed*.sql
 cert.pem
 key.pem
 config.json
+config-*.json
