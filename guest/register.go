@@ -260,7 +260,7 @@ festivities commence at 6:30 pm and will continue until 10:30 pm.  Plan for a
 rollicking good time!
 
 `)
-	io.WriteString(&hb, `<!DOCTYPE html><html><head><style>p{margin:0}p+p,table+p,pre+p{margin-top:1em}table{border-collapse:collapse;margin-top:0.75em}td,th{text-align:left;padding:0.25em 1em 0 0;line-height:1}th{font-weight:normal;text-decoration:underline}pre{margin:0}</style><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="cid:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div><p>Dear Fabulous Schola Supporter,</p><p>We are overjoyed that you will be joining us for our fantastic New Orleans inspired party and fundraiser, “An Evening of Jazz in the Big Easy”, on Friday, April 22, 2022, at Villa Ragusa, 35 South Second Street, Campbell (see <a href="https://www.google.com/maps/place/Villa+Ragusa/@37.286705,-121.9550339,15z/data=!4m5!3m4!1s0x808e34df7230a395:0x657b9c0fec66d741!8m2!3d37.286705!4d-121.9462738">map</a>).  The festivities commence at 6:30 pm and will continue until 10:30 pm.  Plan for a rollicking good time!</p>`)
+	io.WriteString(&hb, `<!DOCTYPE html><html><head><style>p{margin:0}p+p,table+p,pre+p{margin-top:1em}table{border-collapse:collapse;margin-top:0.75em}td,th{text-align:left;padding:0.25em 1em 0 0;line-height:1}th{font-weight:normal;text-decoration:underline}pre{margin:0}</style><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="cid:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div><p>Dear Fabulous Schola Supporter,</p><p>We are overjoyed that you will be joining us for our fantastic New Orleans-inspired party and fundraiser, “An Evening of Jazz in the Big Easy”, on Friday, April 22, 2022, at Villa Ragusa, 35 South Second Street, Campbell (see <a href="https://www.google.com/maps/place/Villa+Ragusa/@37.286705,-121.9550339,15z/data=!4m5!3m4!1s0x808e34df7230a395:0x657b9c0fec66d741!8m2!3d37.286705!4d-121.9462738">map</a> and <a href="https://scholacantorum.org/villa-ragusa-parking.png">parking suggestion</a>).  The festivities commence at 6:30 pm and will continue until 10:30 pm.  Plan for a rollicking good time!</p>`)
 	switch len(guests) {
 	case 1:
 		io.WriteString(&tb, "You have purchased one ticket for $175:\n\n")
@@ -306,14 +306,14 @@ Schola Office at (650) 254–1700.
 	fmt.Fprintf(&tb, "For your records, you paid a total of $%d on %s by %s.\n\n", oinfo.total/100, time.Now().Format("January 2, 2006"), oinfo.card)
 	fmt.Fprintf(&hb, `<p>For your records, you paid a total of $%d on %s by %s.</p>`, oinfo.total/100, time.Now().Format("January 2, 2006"), oinfo.card)
 	io.WriteString(&tb, `Reservations will be held at the door; no tickets will be mailed to you.  When
-you arrive, please check in at the registration table, get your program,
-provide your credit card number for purchases made at the event, and get your
-ticket for a complimentary Hurricane, the signature drink of New Orleans.
-There will also be complimentary champagne, wine, and soft drinks for all
-guests.
+you arrive, please check in at the registration table, show your proof of
+COVID-19 vaccination, get your program, provide your credit card number for
+purchases made at the event, and get your ticket for a complimentary Hurricane,
+the signature drink of New Orleans. There will also be complimentary champagne,
+wine, and soft drinks for all guests.
 
 `)
-	io.WriteString(&hb, `<p>Reservations will be held at the door; no tickets will be mailed to you.  When you arrive, please check in at the registration table, get your program, provide your credit card number for purchases made at the event, and get your ticket for a complimentary Hurricane, the signature drink of New Orleans.  There will also be complimentary champagne, wine, and soft drinks for all guests.</p>`)
+	io.WriteString(&hb, `<p>Reservations will be held at the door; no tickets will be mailed to you.  When you arrive, please check in at the registration table, show your proof of COVID-19 vaccination, get your program, provide your credit card number for purchases made at the event, and get your ticket for a complimentary Hurricane, the signature drink of New Orleans.  There will also be complimentary champagne, wine, and soft drinks for all guests.</p>`)
 	io.WriteString(&tb, "Laissez les bon temps rouler!\n\nMusically yours,\nSchola Cantorum Silicon Valley\n\nWeb: scholacantorum.org\nEmail: info@scholacantorum.org\nPhone: (650) 254–1700\n")
 	io.WriteString(&hb, `<p><b><i>Laissez les bon temps rouler!</i></b><p>Musically yours,<br>Schola Cantorum Silicon Valley<p>Web: <a href="https://scholacantorum.org">scholacantorum.org</a><br>Email: <a href="mailto:info@scholacantorum.org">info@scholacantorum.org</a><br>Phone: <a href="tel:16502541700">(650) 254–1700</a></p></div></body></html>`)
 	message.Text = tb.String()
