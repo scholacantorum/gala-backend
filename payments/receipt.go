@@ -5,7 +5,6 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -72,8 +71,6 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 		log.Printf("receipt: can't pipe to send-email: %s", err)
 		return
 	}
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	if err = cmd.Start(); err != nil {
 		log.Printf("receipt: can't start send-email: %s", err)
 		return

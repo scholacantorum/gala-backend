@@ -57,7 +57,6 @@ type Message struct {
 // Send sends an email message.
 func (m *Message) Send() (err error) {
 	by := m.render()
-	os.Stderr.Write(by)
 	err = smtp.SendMail(
 		config.Get("smtpServer"),
 		smtp.PlainAuth("",
