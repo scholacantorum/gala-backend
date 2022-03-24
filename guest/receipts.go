@@ -218,7 +218,7 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 
 var payerTemplate = template.Must(template.New("payer").Parse(`
 <div class="receipt">
-<img src="/receipt-logo.png" style="height:72px;margin-bottom:36px">
+<img src="https://gala.scholacantorum.org/receipt-logo.png" style="height:72px;margin-bottom:36px">
 <p>Schola Cantorum confirms the following {{ .PurchaseTypes }} from <b>{{ .Payer }}</b>:</p>
 <table style="margin-bottom:12pt">
   <thead>
