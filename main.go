@@ -214,7 +214,11 @@ func authChecker(w *request.ResponseWriter, r *request.Request) {
 func router(w *request.ResponseWriter, r *request.Request) {
 	var head string
 
+	println(r.URL.Path)
 	head, r.URL.Path = request.ShiftPath(r.URL.Path)
+	if head == "backend" {
+		head, r.URL.Path = request.ShiftPath(r.URL.Path)
+	}
 	switch head {
 	case "all":
 		journal.ServeAll(w, r)

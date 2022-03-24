@@ -3,12 +3,14 @@ package guest
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 
+	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/db"
-	"github.com/scholacantorum/gala-backend/gstripe"
 	"github.com/scholacantorum/gala-backend/journal"
 	"github.com/scholacantorum/gala-backend/model"
 	"github.com/scholacantorum/gala-backend/request"
@@ -146,6 +148,18 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 		}
 	}
 
+	// If the name or email has changed, and the guest is a Stripe customer,
+	// update the Stripe customer with the new name and email.
+	if guest.StripeCustomer != "" && (guest.Name != body.Name || guest.Email != body.Email) {
+		if status, errmsg = updateCustomer(guest, body.Name, body.Email); status != 200 {
+			w.WriteHeader(status)
+			fmt.Fprint(w, errmsg)
+			return
+		}
+	}
+
+	/* TODO update payment info
+
 	// If the name or email has changed, and a payment method was provided,
 	// we want a new Stripe customer.
 	if (guest.Name == body.Name && guest.Email == body.Email) || (body.CardSource == "" && body.PayerID == 0) {
@@ -163,6 +177,7 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 		fmt.Fprint(w, errmsg)
 		return
 	}
+	*/
 
 	// Update the database and generate the journal.
 	if body.Name != guest.Name {
@@ -232,4 +247,28 @@ func addPayingForPurchases(w *request.ResponseWriter, r *request.Request, payer 
 	}
 	journal.Log(r, &je)
 	w.CommitNoContent(r)
+}
+
+func updateCustomer(guest *model.Guest, name, email string) (status int, errmsg string) {
+	var (
+		addr string
+		resp *http.Response
+		err  error
+		body = make(url.Values)
+	)
+	addr = fmt.Sprintf("%s/payapi/customer/%s", config.Get("ordersURL"), guest.StripeCustomer)
+	body.Set("name", name)
+	body.Set("email", email)
+	body.Set("auth", config.Get("ordersAPIKey"))
+	resp, err = http.PostForm(addr, body)
+	if err != nil {
+		return 500, ""
+	}
+	if resp.StatusCode == http.StatusNoContent {
+		resp.Body.Close()
+		return 200, ""
+	}
+	by, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	return resp.StatusCode, string(by)
 }
