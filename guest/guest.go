@@ -195,10 +195,10 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 	guest.PartyID = body.PartyID
 	guest.Bidder = body.Bidder
 	guest.PayerID = body.PayerID
-	guest.StripeCustomer = body.StripeCustomer
-	guest.StripeSource = body.StripeSource
-	guest.StripeDescription = body.StripeDescription
-	guest.UseCard = body.UseCard
+	// guest.StripeCustomer = body.StripeCustomer
+	// guest.StripeSource = body.StripeSource
+	// guest.StripeDescription = body.StripeDescription
+	// guest.UseCard = body.UseCard
 	guest.Entree = body.Entree
 	guest.Save(r.Tx, &je)
 	model.FetchGuests(r.Tx, func(g *model.Guest) {
