@@ -15,7 +15,7 @@ import (
 func ValidSession(r *request.Request) bool {
 	var err error
 
-	if r.URL.Path == "/ws" {
+	if r.SessionToken == "" {
 		r.SessionToken = r.FormValue("auth")
 	}
 	if r.SessionToken == "" {
