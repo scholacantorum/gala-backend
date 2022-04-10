@@ -3,12 +3,14 @@ package guest
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 
+	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/db"
-	"github.com/scholacantorum/gala-backend/gstripe"
 	"github.com/scholacantorum/gala-backend/journal"
 	"github.com/scholacantorum/gala-backend/model"
 	"github.com/scholacantorum/gala-backend/request"
@@ -57,8 +59,6 @@ func addGuest(w *request.ResponseWriter, r *request.Request) {
 		body          addGuestBody
 		je            model.JournalEntry
 		purchase      model.Purchase
-		errmsg        string
-		status        int
 		pfid          db.ID
 		err           error
 		bodyPayingFor = map[db.ID]bool{}
@@ -100,12 +100,41 @@ func addGuest(w *request.ResponseWriter, r *request.Request) {
 	body.Sortname = sortname(body.Name)
 	body.UseCard = body.CardSource != ""
 
-	// Find the Stripe customer if any, or create one if we have a card.
-	status, errmsg = gstripe.FindOrCreateCustomer(&body.Guest, body.CardSource)
-	if status != 200 {
-		w.WriteHeader(status)
-		fmt.Fprint(w, errmsg)
-		return
+	// If we have a card for the new guest, create a Stripe customer with
+	// that card.
+	if body.CardSource != "" {
+		var params = make(url.Values)
+		params.Set("auth", config.Get("ordersAPIKey"))
+		params.Set("name", body.Name)
+		params.Set("email", body.Email)
+		params.Set("card", body.CardSource)
+		resp, err := http.PostForm(config.Get("ordersURL")+"/payapi/customer", params)
+		if err != nil {
+			log.Printf("error creating customer: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, err)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			w.WriteHeader(resp.StatusCode)
+			io.Copy(w, resp.Body)
+			return
+		}
+		var response struct {
+			Customer    string `json:"customer"`
+			Method      string `json:"method"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+			log.Printf("error creating customer: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, err)
+			return
+		}
+		body.StripeCustomer = response.Customer
+		body.StripeSource = response.Method
+		body.StripeDescription = response.Description
 	}
 
 	// Update the database and generate the journal.

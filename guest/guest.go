@@ -138,9 +138,6 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 	if body.Address == "" || body.City == "" || body.State == "" || body.Zip == "" {
 		body.Address, body.City, body.State, body.Zip = "", "", "", "" // all or none
 	}
-	if body.CardSource != "" {
-		body.UseCard = true
-	}
 	if body.PartyID != guest.PartyID && body.PartyID != 0 {
 		if party := model.FetchParty(r.Tx, body.PartyID); party == nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -148,36 +145,52 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 		}
 	}
 
-	// If the name or email has changed, and the guest is a Stripe customer,
-	// update the Stripe customer with the new name and email.
-	if guest.StripeCustomer != "" && (guest.Name != body.Name || guest.Email != body.Email) {
-		if status, errmsg = updateCustomer(guest, body.Name, body.Email); status != 200 {
+	// If the guest is a Stripe customer, make any necessary updates.
+	if guest.StripeCustomer != "" && (guest.Name != body.Name || guest.Email != body.Email || body.CardSource != "") {
+		if status, errmsg = updateCustomer(guest, body.Name, body.Email, body.CardSource); status != 200 {
 			w.WriteHeader(status)
 			fmt.Fprint(w, errmsg)
 			return
 		}
 	}
 
-	/* TODO update payment info
-
-	// If the name or email has changed, and a payment method was provided,
-	// we want a new Stripe customer.
-	if (guest.Name == body.Name && guest.Email == body.Email) || (body.CardSource == "" && body.PayerID == 0) {
-		body.StripeCustomer = guest.StripeCustomer
-	} else {
-		body.StripeCustomer = ""
+	// If the guest is not a Stripe customer, but we have card data, we need
+	// to create a Stripe customer.
+	if guest.StripeCustomer == "" && body.CardSource != "" {
+		var params = make(url.Values)
+		params.Set("auth", config.Get("ordersAPIKey"))
+		params.Set("name", body.Name)
+		params.Set("email", body.Email)
+		params.Set("card", body.CardSource)
+		resp, err := http.PostForm(config.Get("ordersURL")+"/payapi/customer", params)
+		if err != nil {
+			log.Printf("error creating customer: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, err)
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			w.WriteHeader(resp.StatusCode)
+			io.Copy(w, resp.Body)
+			return
+		}
+		var response struct {
+			Customer    string `json:"customer"`
+			Method      string `json:"method"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+			log.Printf("error creating customer: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, err)
+			return
+		}
+		guest.StripeCustomer = response.Customer
+		guest.StripeSource = response.Method
+		guest.StripeDescription = response.Description
+		guest.UseCard = true
 	}
-	if body.StripeCustomer != "" { // Update the existing customer.
-		status, errmsg = gstripe.UpdateCustomer(&body.Guest, body.CardSource)
-	} else {
-		status, errmsg = gstripe.FindOrCreateCustomer(&body.Guest, body.CardSource)
-	}
-	if status != 200 {
-		w.WriteHeader(status)
-		fmt.Fprint(w, errmsg)
-		return
-	}
-	*/
 
 	// Update the database and generate the journal.
 	if body.Name != guest.Name {
@@ -195,10 +208,6 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 	guest.PartyID = body.PartyID
 	guest.Bidder = body.Bidder
 	guest.PayerID = body.PayerID
-	// guest.StripeCustomer = body.StripeCustomer
-	// guest.StripeSource = body.StripeSource
-	// guest.StripeDescription = body.StripeDescription
-	// guest.UseCard = body.UseCard
 	guest.Entree = body.Entree
 	guest.Save(r.Tx, &je)
 	model.FetchGuests(r.Tx, func(g *model.Guest) {
@@ -249,7 +258,7 @@ func addPayingForPurchases(w *request.ResponseWriter, r *request.Request, payer 
 	w.CommitNoContent(r)
 }
 
-func updateCustomer(guest *model.Guest, name, email string) (status int, errmsg string) {
+func updateCustomer(guest *model.Guest, name, email, card string) (status int, errmsg string) {
 	var (
 		addr string
 		resp *http.Response
@@ -259,6 +268,7 @@ func updateCustomer(guest *model.Guest, name, email string) (status int, errmsg 
 	addr = fmt.Sprintf("%s/payapi/customer/%s", config.Get("ordersURL"), guest.StripeCustomer)
 	body.Set("name", name)
 	body.Set("email", email)
+	body.Set("card", card)
 	body.Set("auth", config.Get("ordersAPIKey"))
 	resp, err = http.PostForm(addr, body)
 	if err != nil {
@@ -270,5 +280,10 @@ func updateCustomer(guest *model.Guest, name, email string) (status int, errmsg 
 	}
 	by, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		guest.StripeSource = card
+		guest.StripeDescription = string(by)
+		return 200, ""
+	}
 	return resp.StatusCode, string(by)
 }
