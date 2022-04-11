@@ -26,7 +26,7 @@ func (i *Item) Save(tx *sqlx.Tx, je *JournalEntry) {
 		nid int64
 		err error
 	)
-	res, err = tx.Exec(`INSERT OR REPLACE INTO item (id, name, amount, value) VALUES (?,?,?,?,?)`,
+	res, err = tx.Exec(`INSERT OR REPLACE INTO item (id, name, amount, value) VALUES (?,?,?,?)`,
 		i.ID, i.Name, i.Amount, i.Value)
 	if err != nil {
 		panic(err)
