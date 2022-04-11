@@ -27,6 +27,8 @@ func ServeGuests(w *request.ResponseWriter, r *request.Request) {
 		serveGuests(w, r)
 	case "checkin-forms":
 		serveCheckinForms(w, r)
+	case "list":
+		serveGuestList(w, r)
 	case "program-labels":
 		serveProgramLabels(w, r)
 	case "receipts":
