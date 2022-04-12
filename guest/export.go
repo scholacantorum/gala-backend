@@ -27,7 +27,7 @@ func serveGuestList(w *request.ResponseWriter, r *request.Request) {
 		fields := []string{"", g.Sortname, g.Email, g.Address, g.City, g.State, g.Zip, g.Phone, g.Entree,
 			strings.ReplaceAll(g.Requests, "\n", " ")}
 		if g.Bidder != 0 {
-			fields[0] = strconv.Itoa(g.Bidder)
+			fields[0] = strconv.FormatInt(int64(g.Bidder), 16)
 		}
 		cw.Write(fields)
 	}, "1 ORDER BY sortname")
