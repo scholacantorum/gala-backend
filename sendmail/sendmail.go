@@ -41,6 +41,8 @@ type Message struct {
 	Bcc []string
 	// Subject is the content of the Subject: header.
 	Subject string
+	// ReplyTo is the content of the Reply-To: header.
+	ReplyTo string
 	// Text is the plain text form of the message body.
 	Text string
 	// HTML is the HTML form of the message body.
@@ -86,6 +88,9 @@ func (m *Message) render() []byte {
 	)
 	if m.From != "" {
 		fmt.Fprintf(&buf, "From: %s\r\n", m.From)
+	}
+	if m.ReplyTo != "" {
+		fmt.Fprintf(&buf, "Reply-To: %s\r\n", m.ReplyTo)
 	}
 	if len(m.To) != 0 {
 		fmt.Fprintf(&buf, "To: %s\r\n", strings.Join(m.To, ", "))
@@ -135,7 +140,7 @@ func (m *Message) render() []byte {
 		qw.Close()
 	}
 	if m.HTML != "" && len(m.Images) != 0 {
-		if mw != nil {
+		if m.Text != "" {
 			hdr = make(textproto.MIMEHeader)
 			hdr.Set("Content-Type", "multipart/related; boundary=X"+mw.Boundary())
 			part, _ = mw.CreatePart(hdr)

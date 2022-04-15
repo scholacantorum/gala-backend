@@ -3,12 +3,16 @@ package payments
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
+	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/db"
-	"github.com/scholacantorum/gala-backend/gstripe"
+	"github.com/scholacantorum/gala-backend/guest"
 	"github.com/scholacantorum/gala-backend/journal"
 	"github.com/scholacantorum/gala-backend/model"
 	"github.com/scholacantorum/gala-backend/request"
@@ -131,7 +135,12 @@ ERROR:
 func chargeNewCard(
 	r *request.Request, je *model.JournalEntry, payer *model.Guest, cardSource string, total int,
 ) (onum, status int, description string) {
-	if status, description = gstripe.FindOrCreateCustomer(payer, cardSource); status != 200 {
+	if payer.StripeCustomer != "" {
+		status, description = guest.UpdateCustomer(payer, payer.Name, payer.Email, cardSource)
+	} else {
+		status, description = guest.CreateCustomer(payer, payer.Name, payer.Email, cardSource)
+	}
+	if status != 200 {
 		return 0, status, description
 	}
 	payer.UseCard = true
@@ -140,9 +149,57 @@ func chargeNewCard(
 }
 
 func chargeExistingCard(payer *model.Guest, payType string, total int) (onum, status int, description string) {
-	//if onum = gstripe.GetScholaOrderNumber(); onum == 0 {
-		//return 0, 500, ""
-	//}
-	status, description = gstripe.ChargeStripe(payer, payType, "Gala Purchase", "gala-purchase", onum, total/100, total)
-	return onum, status, description
+	type responsedata struct {
+		Error    string `json:"error"`
+		ID       int    `json:"id"`
+		Payments []struct {
+			Method string `json:"method"`
+		} `json:"payments"`
+	}
+	var (
+		resp   *http.Response
+		rdata  responsedata
+		err    error
+		params = make(url.Values)
+	)
+	params.Set("auth", config.Get("ordersAPIKey"))
+	params.Set("source", "gala")
+	params.Set("name", payer.Name)
+	params.Set("email", payer.Email)
+	params.Set("address", payer.Address)
+	params.Set("city", payer.City)
+	params.Set("state", payer.State)
+	params.Set("zip", payer.Zip)
+	params.Set("phone", payer.Phone)
+	params.Set("customer", payer.StripeCustomer)
+	params.Set("line1.product", "gala-purchase")
+	params.Set("line1.quantity", "1")
+	params.Set("line1.price", strconv.Itoa(total))
+	params.Set("payment1.type", "card")
+	params.Set("payment1.subtype", payType)
+	params.Set("payment1.method", payer.StripeSource)
+	params.Set("payment1.amount", strconv.Itoa(total))
+	resp, err = http.PostForm(config.Get("ordersURL")+"/payapi/order", params)
+	if err != nil {
+		log.Printf("Post gala purchase to orders failed: %s", err)
+		return 0, 500, err.Error()
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		log.Printf("Post gala purchase to orders failed: %d %s", resp.StatusCode, resp.Status)
+		by, _ := io.ReadAll(resp.Body)
+		return 0, resp.StatusCode, string(by)
+	}
+	if err = json.NewDecoder(resp.Body).Decode(&rdata); err != nil {
+		log.Printf("Can't parse orders response: %s", err)
+		return 0, 500, err.Error()
+	}
+	if rdata.Error != "" {
+		return 0, 400, rdata.Error
+	}
+	if len(rdata.Payments) != 1 {
+		log.Printf("Order has %d payments, expected 1", len(rdata.Payments))
+		return 0, 500, "wrong payment count"
+	}
+	return rdata.ID, 200, rdata.Payments[0].Method
 }

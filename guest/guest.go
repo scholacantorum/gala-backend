@@ -147,7 +147,7 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 
 	// If the guest is a Stripe customer, make any necessary updates.
 	if guest.StripeCustomer != "" && (guest.Name != body.Name || guest.Email != body.Email || body.CardSource != "") {
-		if status, errmsg = updateCustomer(guest, body.Name, body.Email, body.CardSource); status != 200 {
+		if status, errmsg = UpdateCustomer(guest, body.Name, body.Email, body.CardSource); status != 200 {
 			w.WriteHeader(status)
 			fmt.Fprint(w, errmsg)
 			return
@@ -157,39 +157,11 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 	// If the guest is not a Stripe customer, but we have card data, we need
 	// to create a Stripe customer.
 	if guest.StripeCustomer == "" && body.CardSource != "" {
-		var params = make(url.Values)
-		params.Set("auth", config.Get("ordersAPIKey"))
-		params.Set("name", body.Name)
-		params.Set("email", body.Email)
-		params.Set("card", body.CardSource)
-		resp, err := http.PostForm(config.Get("ordersURL")+"/payapi/customer", params)
-		if err != nil {
-			log.Printf("error creating customer: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, err)
+		if status, errmsg := CreateCustomer(guest, body.Name, body.Email, body.CardSource); status != 200 {
+			w.WriteHeader(status)
+			io.WriteString(w, errmsg)
 			return
 		}
-		defer resp.Body.Close()
-		if resp.StatusCode != 200 {
-			w.WriteHeader(resp.StatusCode)
-			io.Copy(w, resp.Body)
-			return
-		}
-		var response struct {
-			Customer    string `json:"customer"`
-			Method      string `json:"method"`
-			Description string `json:"description"`
-		}
-		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-			log.Printf("error creating customer: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, err)
-			return
-		}
-		guest.StripeCustomer = response.Customer
-		guest.StripeSource = response.Method
-		guest.StripeDescription = response.Description
-		guest.UseCard = true
 	}
 
 	// Update the database and generate the journal.
@@ -258,7 +230,41 @@ func addPayingForPurchases(w *request.ResponseWriter, r *request.Request, payer 
 	w.CommitNoContent(r)
 }
 
-func updateCustomer(guest *model.Guest, name, email, card string) (status int, errmsg string) {
+// CreateCustomer creates a customer record in the order processing system.
+func CreateCustomer(guest *model.Guest, name, email, card string) (status int, errmsg string) {
+	var params = make(url.Values)
+	params.Set("auth", config.Get("ordersAPIKey"))
+	params.Set("name", name)
+	params.Set("email", email)
+	params.Set("card", card)
+	resp, err := http.PostForm(config.Get("ordersURL")+"/payapi/customer", params)
+	if err != nil {
+		log.Printf("error creating customer: %s", err)
+		return http.StatusInternalServerError, err.Error()
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		by, _ := io.ReadAll(resp.Body)
+		return resp.StatusCode, string(by)
+	}
+	var response struct {
+		Customer    string `json:"customer"`
+		Method      string `json:"method"`
+		Description string `json:"description"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		log.Printf("error creating customer: %s", err)
+		return http.StatusInternalServerError, err.Error()
+	}
+	guest.StripeCustomer = response.Customer
+	guest.StripeSource = response.Method
+	guest.StripeDescription = response.Description
+	guest.UseCard = true
+	return 200, ""
+}
+
+// UpdateCustomer updates the customer record in the order processing system.
+func UpdateCustomer(guest *model.Guest, name, email, card string) (status int, errmsg string) {
 	var (
 		addr string
 		resp *http.Response

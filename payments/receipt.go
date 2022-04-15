@@ -1,16 +1,16 @@
 package payments
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
-	"io"
-	"log"
-	"os/exec"
+	"net/mail"
 	"strings"
 
 	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/model"
 	"github.com/scholacantorum/gala-backend/request"
+	"github.com/scholacantorum/gala-backend/sendmail"
 )
 
 func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchases []*model.Purchase) {
@@ -32,10 +32,9 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 		Purchases       []purchase
 	}
 	var (
-		emailTo []string
-		cmd     *exec.Cmd
-		pipe    io.WriteCloser
-		err     error
+		message sendmail.Message
+		addr    mail.Address
+		hb      bytes.Buffer
 	)
 
 	// Fill in the template data.
@@ -62,33 +61,20 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 		emailData.TotalValue += emailData.Purchases[i].Value
 	}
 	emailData.Deductible = emailData.TotalAmount - emailData.TotalValue
+	emailTemplate.Execute(&hb, &emailData)
 
 	// Start the email.
-	emailTo = append([]string{}, strings.Split(config.Get("emailTo"), ",")...)
-	emailTo = append(emailTo, payer.Email)
-	cmd = exec.Command(config.Get("sendmail"), emailTo...)
-	if pipe, err = cmd.StdinPipe(); err != nil {
-		log.Printf("receipt: can't pipe to send-email: %s", err)
-		return
-	}
-	if err = cmd.Start(); err != nil {
-		log.Printf("receipt: can't start send-email: %s", err)
-		return
-	}
-	fmt.Fprintf(pipe, `From: Schola Cantorum Web Site <admin@scholacantorum.org>
-To: %s <%s>
-Reply-To: info@scholacantorum.org
-Subject: Schola Cantorum Order #%d
-
-`,
-		payer.Name, payer.Email, onum)
-
-	// Render the email template.
-	emailTemplate.Execute(pipe, &emailData)
-	pipe.Close()
-	if err = cmd.Wait(); err != nil {
-		log.Printf("receipt: send-email failed: %s", err)
-	}
+	message.From = "Schola Cantorum <admin@scholacantorum.org>"
+	addr.Name = payer.Name
+	addr.Address = payer.Email
+	message.SendTo = strings.Split(config.Get("emailTo"), ",")
+	message.SendTo = append(message.SendTo, payer.Email)
+	message.To = []string{addr.String()}
+	message.Subject = fmt.Sprintf("Schola Cantorum Order #%d", onum)
+	message.ReplyTo = "Schola Cantorum <info@scholacantorum.org>"
+	message.Images = [][]byte{sendmail.ScholaLogoPNG}
+	message.HTML = hb.String()
+	message.Send()
 }
 
 var tableTemplate = `
@@ -141,6 +127,7 @@ var tableTemplate = `
 </p>
 `
 var emailTemplate = template.Must(template.New("email").Parse(`
+<!DOCTYPE html><html><head><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="CID:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div>
 <p>Dear {{ .Payer }},</p>
 <p>We confirm the following purchases and donations made at {{ .EventTitle }} on {{ .EventDate }}, charged to {{ .Card }}:</p>
 {{ template "table" . }}
@@ -153,7 +140,7 @@ var emailTemplate = template.Must(template.New("email").Parse(`
   Web: <a href="https://scholacantorum.org">scholacantorum.org</a><br>
   Email: <a href="mailto:info@scholacantorum.org">info@scholacantorum.org</a><br>
   Phone: (650) 254-1700
-</p>
+</p></div></body></html>
 `))
 
 func init() {
