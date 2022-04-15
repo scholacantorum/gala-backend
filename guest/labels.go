@@ -107,4 +107,17 @@ func renderLabel(pdf *gofpdf.Fpdf, guest *model.Guest, table *model.Table, col, 
 	pdf.Cellf(166.5, 12, "Table %d", table.Number)
 	pdf.MoveTo(left, top+40)
 	pdf.Cellf(166.5, 12, "Bidder %X", guest.Bidder)
+	var ecode string
+	switch guest.Entree {
+	case "steak":
+		ecode = "M"
+	case "salmon":
+		ecode = "F"
+	case "Jambalaya":
+		ecode = "V"
+	default:
+		return
+	}
+	pdf.MoveTo(left+158.5, top+40)
+	pdf.Cell(8, 12, ecode)
 }
