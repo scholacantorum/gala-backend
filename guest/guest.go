@@ -152,6 +152,8 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 			fmt.Fprint(w, errmsg)
 			return
 		}
+	} else if guest.StripeCustomer != "" {
+		guest.UseCard = body.UseCard
 	}
 
 	// If the guest is not a Stripe customer, but we have card data, we need
