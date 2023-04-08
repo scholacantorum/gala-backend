@@ -21,6 +21,8 @@ func ServePurchases(w *request.ResponseWriter, r *request.Request) {
 		servePurchases(w, r)
 	case "export":
 		serveExportPurchases(w, r)
+	case "winners":
+		serveAuctionWinners(w, r)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
