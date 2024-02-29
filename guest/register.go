@@ -254,12 +254,12 @@ func publicRegisterReceipt(oinfo *orderInfo, guests []*model.Guest, missing bool
 	io.WriteString(&tb, `Dear Fabulous Schola Supporter,
 
 We are overjoyed that you will be joining us for our annual party and
-fundraiser, “Reach for the Stars!”, on Saturday, April 15, 2023, at Villa
-Ragusa, 35 South Second Street, Campbell.  The festivities commence at 6:30 pm
-and will continue until 10:30 pm.  Plan for a stellar evening!
+fundraiser, “Springtime Renaissance”, on Saturday, May 18, 2024, at Saratoga
+Country Club, 21990 Prospect Road, Saratoga.  The festivities commence at 6:00pm
+and will continue until 10:00pm.
 
 `)
-	io.WriteString(&hb, `<!DOCTYPE html><html><head><style>p{margin:0}p+p,table+p,pre+p{margin-top:1em}table{border-collapse:collapse;margin-top:0.75em}td,th{text-align:left;padding:0.25em 1em 0 0;line-height:1}th{font-weight:normal;text-decoration:underline}pre{margin:0}</style><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="cid:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div><p>Dear Fabulous Schola Supporter,</p><p>We are overjoyed that you will be joining us for our annual party and fundraiser, “Reach for the Stars!”, on Saturday, April 15, 2023, at Villa Ragusa, 35 South Second Street, Campbell (see <a href="https://www.google.com/maps/place/Villa+Ragusa/@37.286705,-121.9550339,15z/data=!4m5!3m4!1s0x808e34df7230a395:0x657b9c0fec66d741!8m2!3d37.286705!4d-121.9462738">map</a> and <a href="https://scholacantorum.org/villa-ragusa-parking.png">parking suggestion</a>).  The festivities commence at 6:30 pm and will continue until 10:30 pm.  Plan for a stellar evening!</p>`)
+	io.WriteString(&hb, `<!DOCTYPE html><html><head><style>p{margin:0}p+p,table+p,pre+p{margin-top:1em}table{border-collapse:collapse;margin-top:0.75em}td,th{text-align:left;padding:0.25em 1em 0 0;line-height:1}th{font-weight:normal;text-decoration:underline}pre{margin:0}</style><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="cid:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div><p>Dear Fabulous Schola Supporter,</p><p>We are overjoyed that you will be joining us for our annual party and fundraiser, “Springtime Renaissance”, on Saturday, May 18, 2024, at Saratoga Country Club, 21990 Prospect Road, Saratoga (see <a href="https://www.google.com/maps/place/Saratoga+Country+Club/@37.284146,-122.0706404,14z/data=!4m6!3m5!1s0x808fb4c4b0258435:0x39980b6fabeaf7de!8m2!3d37.284146!4d-122.052616!16s%2Fg%2F1tgx6vjd?entry=ttu">map</a>).  The festivities commence at 6:00pm and will continue until 10:00pm.</p>`)
 	switch len(guests) {
 	case 1:
 		io.WriteString(&tb, "You have purchased one ticket for $175:\n\n")
@@ -287,20 +287,20 @@ and will continue until 10:30 pm.  Plan for a stellar evening!
 		fmt.Fprintf(&hb, "<p><u>Special Requests</u></p><pre>%s</pre>", html.EscapeString(guests[0].Requests))
 	}
 	if missing {
-		io.WriteString(&tb, `We need all guest names and entree choices no later than April 3.  We would
+		io.WriteString(&tb, `We need all guest names and entree choices no later than May 5.  We would
 also like to know of any dietary restrictions or seating requests.  To supply
 those, or to correct any errors, please reply to this email.  You can also call
 the Schola office at (650) 254–1700.
 
 `)
-		io.WriteString(&hb, `<p>We need all guest names and entree choices no later than April 3.  We would also like to know of any dietary restrictions or seating requests.  To supply those, or to correct any errors, please reply to this email.  You can also call the Schola office at (650)&nbsp;254–1700.</p>`)
+		io.WriteString(&hb, `<p>We need all guest names and entree choices no later than May 5.  We would also like to know of any dietary restrictions or seating requests.  To supply those, or to correct any errors, please reply to this email.  You can also call the Schola office at (650)&nbsp;254–1700.</p>`)
 	} else {
 		io.WriteString(&tb, `If you need to make any corrections, or add any dietary restrictions or seating
-requests, please do so by April 3.  You can reply to this email, or call the
+requests, please do so by May 5.  You can reply to this email, or call the
 Schola Office at (650) 254–1700.
 
 `)
-		io.WriteString(&hb, `<p>If you need to make any corrections, or add any dietary restrictions or seating requests, please do so by April 3.  You can reply to this email, or call the Schola Office at (650)&nbsp;254–1700.</p>`)
+		io.WriteString(&hb, `<p>If you need to make any corrections, or add any dietary restrictions or seating requests, please do so by May 5.  You can reply to this email, or call the Schola Office at (650)&nbsp;254–1700.</p>`)
 	}
 	fmt.Fprintf(&tb, "For your records, you paid a total of $%d on %s by %s.\n\n", oinfo.total/100, time.Now().Format("January 2, 2006"), oinfo.card)
 	fmt.Fprintf(&hb, `<p>For your records, you paid a total of $%d on %s by %s.</p>`, oinfo.total/100, time.Now().Format("January 2, 2006"), oinfo.card)
@@ -322,12 +322,12 @@ func entreeName(code string) string {
 	switch code {
 	case "":
 		return "(not yet selected)"
-	case "primerib":
-		return "Prime Rib"
-	case "salmon":
-		return "Salmon"
-	case "eggplant":
-		return "Eggplant Parmesan"
+	case "filet":
+		return "Filet Mignon"
+	case "bass":
+		return "Sea Bass"
+	case "gnocchi":
+		return "Gnocchi"
 	default:
 		return code
 	}
