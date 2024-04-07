@@ -26,6 +26,7 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 		StripeSource string  `json:"stripeSource"`
 		CardSource   string  `json:"cardSource"`
 		OtherMethod  string  `json:"otherMethod"`
+		PledgeMethod string  `json:"pledgeMethod"`
 		Total        int     `json:"total"`
 	}
 	var (
@@ -60,16 +61,21 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 	}
 	switch {
 	case body.StripeSource != "":
-		if body.StripeSource != payer.StripeSource || body.CardSource != "" || body.OtherMethod != "" {
+		if body.StripeSource != payer.StripeSource || body.CardSource != "" || body.OtherMethod != "" || body.PledgeMethod != "" {
 			log.Print("ServePayments StripeSource error")
 			goto ERROR
 		}
 	case body.CardSource != "":
-		if body.OtherMethod != "" || payer.Email == "" {
+		if body.OtherMethod != "" || body.PledgeMethod != "" || payer.Email == "" {
 			log.Print("ServePayments CardSource error")
 			goto ERROR
 		}
-	case body.OtherMethod == "":
+	case body.OtherMethod != "":
+		if body.PledgeMethod != "" {
+			log.Print("ServePayments OtherMethod error")
+			goto ERROR
+		}
+	case body.PledgeMethod == "":
 		log.Print("ServePayments no payment type")
 		goto ERROR
 	}
@@ -104,8 +110,10 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 		onum, status, description = chargeExistingCard(payer, "cardOnFile", total)
 	case body.CardSource != "":
 		onum, status, description = chargeNewCard(r, &je, payer, body.CardSource, total)
-	default:
+	case body.OtherMethod != "":
 		onum, status, description = 0, 200, body.OtherMethod
+	default:
+		onum, status, description = 0, 200, body.PledgeMethod
 	}
 	if status != 200 {
 		log.Printf("ServePayment charge failed %d %s", status, description)
@@ -117,7 +125,9 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 	for _, purchase = range purchases {
 		purchase.PaymentDescription = description
 		purchase.ScholaOrder = onum
-		purchase.PaymentTimestamp = now
+		if body.PledgeMethod == "" {
+			purchase.PaymentTimestamp = now
+		}
 		purchase.Save(r.Tx, &je)
 	}
 	je.MarkGuest(payer.ID)

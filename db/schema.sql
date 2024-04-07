@@ -160,10 +160,12 @@ CREATE TABLE purchase (
     paymentTimestamp text NOT NULL DEFAULT '',
 
     -- Description of the payment method.  For credit card charges, this is
-    -- "Visa 2345".  For other payment methods, this is a free-form string.  It
-    -- is empty if the purchase hasn't been paid.
+    -- "Visa 2345".  For other payment methods, this is a free-form string.  If
+    -- the purchase hasn't been paid (paymentTimestamp is empty), this is
+    -- usually empty but can contain a note about how the payer intends to pay
+    -- for it (e.g., "to be paid by stock donation").
     paymentDescription text NOT NULL DEFAULT ''
-        CHECK((paymentDescription='') = (paymentTimestamp='')),
+        CHECK((paymentDescription!='') || (paymentTimestamp='')),
 
     -- Schola order number, or zero if none.
     scholaOrder integer NOT NULL DEFAULT 0
