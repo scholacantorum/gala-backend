@@ -67,7 +67,7 @@ func serveReceipts(w *request.ResponseWriter, r *request.Request) {
 --></style></head><body>
 <p class="printthis">When printed, this page will have one receipt on each sheet of paper.</p>
 <div class="footer">
-2218 Old Middlefield Way, Suite G • Mountain View CA 94043 • ScholaCantorum.org • (650) 254-1700<br>
+650-B Fremont Avenue, Suite 321 • Los Altos CA 94024 • ScholaCantorum.org • (650) 254-1700<br>
 Info@ScholaCantorum.org • Schola Cantorum is a 501(c)(3) nonprofit organization, tax ID 94-2597822
 </div>
 `)
