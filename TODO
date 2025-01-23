@@ -13,3 +13,30 @@ We were not consistent on accounting for seats for non-payers like the MC, the
 entertainers, the employees, and the politician.  In some cases we called them
 comps.  In other cases, we called them guests of table hosts whose tables
 weren't otherwise filled.
+
+
+Notes after 2024 gala, to be applied for 2025:
+- Need a better way to record "don't use my card for XXX item" or "I'll write a
+  check."
+- Software error if you type half of the C/C number, then type something in
+  another field, and then return to finish the C/C number.
+- After entry of a bad C/C number, the Save button remains spinning.
+- Keep track of who has checked in (couples don't always check in together), and
+  show on table map to be able to see open seats.
+- Handle last-minute changes of seating without changing bidder numbers.
+- Handle last-minute notifications of "not coming".
+- When entering auction results, auto-advance the item.
+- Omit items sold before the event from the auction results printout.
+- Add ability to sort purchases list by bidder number for easy FAN cross-check.
+- Streamline the case where we guess wrong about which half of a couple is
+  paying.
+- Software crashed on one person's credit card.
+- After allowing use of saved card, that radio button doesn't always remain
+  selected.
+- Show better statistics, e.g. received vs. pledged.
+- Exclude DAF payments from donation receipts.
+- CHECK constraint failed: payer is NULL or useCard.  See log 5/18/2024 21:27.
+- Software generate the reports needed for offline fallback.
+- Printing of entree cards.
+- Show data from multiple years, e.g. bidder history.
+- Track which auction items have been picked up.

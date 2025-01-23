@@ -11,9 +11,7 @@ import (
 )
 
 func serveExportPurchases(w *request.ResponseWriter, r *request.Request) {
-	var (
-		cw *csv.Writer
-	)
+	var cw *csv.Writer
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
@@ -35,6 +33,9 @@ func serveExportPurchases(w *request.ResponseWriter, r *request.Request) {
 			item         *model.Item
 		)
 		model.FetchPurchases(r.Tx, func(p *model.Purchase) {
+			if p.Unbid {
+				return
+			}
 			if p.PaymentTimestamp == "" {
 				unpaid = "NOT FULLY PAID"
 			}
@@ -55,9 +56,11 @@ func serveExportPurchases(w *request.ResponseWriter, r *request.Request) {
 		if donations+auctionValue+regtotal == 0 {
 			return
 		}
-		cw.Write([]string{g.Name, g.Email, g.Address, g.City, g.State, g.Zip, strconv.Itoa(regcount),
+		cw.Write([]string{
+			g.Name, g.Email, g.Address, g.City, g.State, g.Zip, strconv.Itoa(regcount),
 			strconv.Itoa(regtotal / 100), strconv.Itoa(donations / 100), strings.Join(auctionItems, ", "),
-			strconv.Itoa(auctionPaid / 100), strconv.Itoa(auctionValue / 100), unpaid})
+			strconv.Itoa(auctionPaid / 100), strconv.Itoa(auctionValue / 100), unpaid,
+		})
 	}, "")
 	cw.Flush()
 }

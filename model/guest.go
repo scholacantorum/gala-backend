@@ -107,7 +107,7 @@ func (g *Guest) Populate(tx *sqlx.Tx) {
 	g.AllPaid = true
 	FetchPurchases(tx, func(p *Purchase) {
 		g.PayingForPurchases = append(g.PayingForPurchases, p.ID)
-		if p.PaymentTimestamp == "" {
+		if p.PaymentTimestamp == "" && !p.Unbid {
 			g.AllPaid = false
 		}
 	}, `payer=?`, g.ID)

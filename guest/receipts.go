@@ -72,12 +72,14 @@ Info@ScholaCantorum.org • Schola Cantorum is a 501(c)(3) nonprofit organizatio
 </div>
 `)
 	var payers []*model.Guest
-	var payerPurchases = map[db.ID][]*model.Purchase{}
+	payerPurchases := map[db.ID][]*model.Purchase{}
 	model.FetchGuests(r.Tx, func(g *model.Guest) {
 		var purchases []*model.Purchase
 		model.FetchPurchases(r.Tx, func(p *model.Purchase) {
-			copy := *p
-			purchases = append(purchases, &copy)
+			if !p.Unbid {
+				copy := *p
+				purchases = append(purchases, &copy)
+			}
 		}, `payer=?`, g.ID)
 		if len(purchases) != 0 {
 			copy := *g
@@ -127,8 +129,8 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 	receiptData.Payer = payer.Name
 	receiptData.ShowTotalValue = true
 	for _, p := range purchases {
-		var item = model.FetchItem(r.Tx, p.ItemID)
-		var purchase = purchase{
+		item := model.FetchItem(r.Tx, p.ItemID)
+		purchase := purchase{
 			ItemID:   p.ItemID,
 			Item:     item.Name,
 			Amount:   p.Amount / 100,

@@ -168,7 +168,13 @@ CREATE TABLE purchase (
         CHECK((paymentDescription!='') || (paymentTimestamp='')),
 
     -- Schola order number, or zero if none.
-    scholaOrder integer NOT NULL DEFAULT 0
+    scholaOrder integer NOT NULL DEFAULT 0,
+
+    -- Flag for an expected Fund-a-Need donation for which the paddle hasn't 
+    -- been raised yet.  There is presently no UI to set this flag; it's done 
+    -- by manual database edit.  It gets cleared when the purchase is 
+    -- (re-)entered when the paddle is raised.
+    unbid boolean NOT NULL DEFAULT 0
 );
 CREATE INDEX purchase_guest_idx ON purchase (guest);
 CREATE INDEX purchase_payer_idx ON purchase (payer);

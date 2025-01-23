@@ -12,9 +12,7 @@ import (
 
 // ServePurchases handles requests starting with /purchases.
 func ServePurchases(w *request.ResponseWriter, r *request.Request) {
-	var (
-		head string
-	)
+	var head string
 	head, r.URL.Path = request.ShiftPath(r.URL.Path)
 	switch head {
 	case "":
@@ -45,6 +43,8 @@ func addPurchase(w *request.ResponseWriter, r *request.Request) {
 		je    model.JournalEntry
 		guest *model.Guest
 		payer *model.Guest
+		isFAN bool
+		isDup bool
 		err   error
 	)
 	if err = json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -63,12 +63,31 @@ func addPurchase(w *request.ResponseWriter, r *request.Request) {
 	if item := model.FetchItem(r.Tx, body.ItemID); item == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	} else if item.Value == 0 {
+		isFAN = true
 	}
 	if payer = model.FetchGuest(r.Tx, guest.PayerID); payer == nil {
 		payer = guest
 	}
 	body.PayerID = payer.ID
-	body.Save(r.Tx, &je)
-	journal.Log(r, &je)
+	// We only accept a single fund-a-need at each level from each guest.
+	// That way we can enter bidder numbers during FAN without worrying
+	// about some of them being duplicates.
+	if isFAN {
+		model.FetchPurchases(r.Tx, func(p *model.Purchase) {
+			if p.Unbid {
+				// Reuse the existing purchase record and turn
+				// off the Unbid flag.
+				body.ID = p.ID
+			} else {
+				// Already have this purchase.
+				isDup = true
+			}
+		}, "item=? AND guest=?", body.ItemID, body.GuestID)
+	}
+	if !isDup {
+		body.Save(r.Tx, &je)
+		journal.Log(r, &je)
+	}
 	w.CommitNoContent(r)
 }
