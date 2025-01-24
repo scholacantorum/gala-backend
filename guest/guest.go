@@ -109,7 +109,8 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 		return
 	}
 	if body.ID != guest.ID || body.Name == "" || (body.CardSource != "" && body.Email == "") ||
-		(body.UseCard && body.PayerID != 0) || (body.CardSource != "" && body.PayerID != 0) {
+		(body.UseCard && body.PayerID != 0) || (body.CardSource != "" && body.PayerID != 0) ||
+		(body.PayerID != 0 && len(body.PayingFor) != 0) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -128,11 +129,14 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// Make sure they aren't paying for someone else.
-		model.FetchGuests(r.Tx, func(g *model.Guest) { bodyPayingFor[pfid] = false }, `payer=?`, pfid)
-		if !bodyPayingFor[pfid] {
-			w.WriteHeader(http.StatusBadRequest)
-			return
+		// Make sure they aren't paying for someone else.  However, it's OK if they
+		// were previously paying for this guest.
+		if pfid != guest.PayerID {
+			model.FetchGuests(r.Tx, func(g *model.Guest) { bodyPayingFor[pfid] = false }, `payer=?`, pfid)
+			if !bodyPayingFor[pfid] {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 		}
 	}
 	if body.Address == "" || body.City == "" || body.State == "" || body.Zip == "" {
@@ -191,6 +195,7 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 			g.Save(r.Tx, &je)
 		} else if bodyPayingFor[g.ID] && g.PayerID != guest.ID {
 			g.PayerID = guest.ID
+			g.UseCard = false // just in case
 			g.Save(r.Tx, &je)
 		}
 	}, "")
