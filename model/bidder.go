@@ -3,17 +3,24 @@ package model
 import (
 	"github.com/jmoiron/sqlx"
 
+	"github.com/scholacantorum/gala-backend/config"
 	"github.com/scholacantorum/gala-backend/db"
 )
 
 // updateBidderNumbers ensures that all guests have bidder numbers appropriate
 // for their tables.  It does not change bidder numbers unless they are wrong
-// for their tables.
+// for their tables.  It does nothing if the autoBidderNumbers flag in the
+// configuration has been turned off (which is done when materials with bidder
+// numbers on them have been printed).
 func updateBidderNumbers(tx *sqlx.Tx, je *JournalEntry) {
+	if config.Get("autoBidderNumbers") != "true" {
+		return
+	}
 	FetchTables(tx, func(table *Table) {
 		updateBidderNumbersAtTable(tx, je, table)
 	}, "")
 }
+
 func updateBidderNumbersAtTable(tx *sqlx.Tx, je *JournalEntry, table *Table) {
 	var (
 		toadjust []*Guest
@@ -61,12 +68,14 @@ func updateBidderNumbersAtTable(tx *sqlx.Tx, je *JournalEntry, table *Table) {
 		je.MarkBidderToGuest()
 	}
 }
+
 func updateBidderNumberNextAvail(used map[int]bool, table int) (bidder int) {
 	for bidder = tableNumberToBidderBase(table) * 16; used[bidder]; bidder++ {
 	}
 	used[bidder] = true
 	return bidder
 }
+
 func tableNumberToBidderBase(tnum int) int {
 	return (tnum/10)*16 + (tnum % 10)
 }

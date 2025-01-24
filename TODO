@@ -21,7 +21,6 @@ Notes after 2024 gala, to be applied for 2025:
 - After entry of a bad C/C number, the Save button remains spinning.
 - Keep track of who has checked in (couples don't always check in together), and
   show on table map to be able to see open seats.
-- Handle last-minute changes of seating without changing bidder numbers.
 - Handle last-minute notifications of "not coming".
 - When entering auction results, auto-advance the item.
 - Omit items sold before the event from the auction results printout.
