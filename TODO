@@ -16,14 +16,11 @@ weren't otherwise filled.
 
 
 Notes after 2024 gala, to be applied for 2025:
+- Exclude DAF payments from donation receipts.
 - Software error if you type half of the C/C number, then type something in
   another field, and then return to finish the C/C number.
 - After entry of a bad C/C number, the Save button remains spinning.
-- Keep track of who has checked in (couples don't always check in together), and
-  show on table map to be able to see open seats.
-- Handle last-minute notifications of "not coming".
 - When entering auction results, auto-advance the item.
-- Omit items sold before the event from the auction results printout.
 - Add ability to sort purchases list by bidder number for easy FAN cross-check.
 - Streamline the case where we guess wrong about which half of a couple is
   paying.
@@ -31,9 +28,13 @@ Notes after 2024 gala, to be applied for 2025:
 - After allowing use of saved card, that radio button doesn't always remain
   selected.
 - Show better statistics, e.g. received vs. pledged.
-- Exclude DAF payments from donation receipts.
 - CHECK constraint failed: payer is NULL or useCard.  See log 5/18/2024 21:27.
 - Software generate the reports needed for offline fallback.
 - Printing of entree cards.
+Won't implement until this year has a need:
+- Omit items sold before the event from the auction results printout.
+Not going to happen without a rewrite:
 - Show data from multiple years, e.g. bidder history.
-- Track which auction items have been picked up.
+- Keep track of who has checked in (couples don't always check in together), and
+  show on table map to be able to see open seats.
+- Handle last-minute notifications of "not coming".

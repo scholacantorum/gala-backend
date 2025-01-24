@@ -178,7 +178,11 @@ CREATE TABLE purchase (
     -- been raised yet.  There is presently no UI to set this flag; it's done 
     -- by manual database edit.  It gets cleared when the purchase is 
     -- (re-)entered when the paddle is raised.
-    unbid boolean NOT NULL DEFAULT 0
+    unbid boolean NOT NULL DEFAULT 0,
+
+    -- Flag for whether the item has been picked up (e.g., at check-out) or
+    -- otherwise redeemed.  Not relevant for donations (i.e., item.value=0).
+    pickedUp boolean NOT NULL DEFAULT 0
 );
 CREATE INDEX purchase_guest_idx ON purchase (guest);
 CREATE INDEX purchase_payer_idx ON purchase (payer);

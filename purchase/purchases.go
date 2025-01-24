@@ -85,6 +85,11 @@ func addPurchase(w *request.ResponseWriter, r *request.Request) {
 			}
 		}, "item=? AND guest=?", body.ItemID, body.GuestID)
 	}
+	// Registrations and donations don't need to be "picked up", so we'll
+	// treat them as if they have been.
+	if body.ItemID == 1 || isFAN {
+		body.PickedUp = true
+	}
 	if !isDup {
 		body.Save(r.Tx, &je)
 		journal.Log(r, &je)

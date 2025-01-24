@@ -31,6 +31,8 @@ func ServePurchase(w *request.ResponseWriter, r *request.Request) {
 	switch head {
 	case "":
 		servePurchase(w, r, purchase)
+	case "pickup":
+		servePickup(w, r, purchase)
 	default:
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -55,6 +57,34 @@ func deletePurchase(w *request.ResponseWriter, r *request.Request, purchase *mod
 		return
 	}
 	purchase.Delete(r.Tx, &je)
+	journal.Log(r, &je)
+	w.CommitNoContent(r)
+}
+
+// servePickup handles requests to /purchase/${iid}/pickup.
+func servePickup(w *request.ResponseWriter, r *request.Request, purchase *model.Purchase) {
+	if head, _ := request.ShiftPath(r.URL.Path); head != "" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	switch r.Method {
+	case http.MethodPost:
+		pickUpPurchase(w, r, purchase)
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+// pickUpPurchase handles a POST /purchase/${iid}/pickup request.
+func pickUpPurchase(w *request.ResponseWriter, r *request.Request, purchase *model.Purchase) {
+	var je model.JournalEntry
+
+	if purchase.PaymentTimestamp == "" || purchase.PickedUp {
+		w.WriteHeader(http.StatusConflict)
+		return
+	}
+	purchase.PickedUp = true
+	purchase.Save(r.Tx, &je)
 	journal.Log(r, &je)
 	w.CommitNoContent(r)
 }
