@@ -183,6 +183,7 @@ func saveGuest(w *request.ResponseWriter, r *request.Request, guest *model.Guest
 	guest.Bidder = body.Bidder
 	guest.PayerID = body.PayerID
 	guest.Entree = body.Entree
+	guest.Notes = body.Notes
 	guest.Save(r.Tx, &je)
 	model.FetchGuests(r.Tx, func(g *model.Guest) {
 		if !bodyPayingFor[g.ID] && g.PayerID == guest.ID {
@@ -234,7 +235,7 @@ func addPayingForPurchases(w *request.ResponseWriter, r *request.Request, payer 
 
 // CreateCustomer creates a customer record in the order processing system.
 func CreateCustomer(guest *model.Guest, name, email, card string) (status int, errmsg string) {
-	var params = make(url.Values)
+	params := make(url.Values)
 	params.Set("auth", config.Get("ordersAPIKey"))
 	params.Set("name", name)
 	params.Set("email", email)

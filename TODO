@@ -16,8 +16,6 @@ weren't otherwise filled.
 
 
 Notes after 2024 gala, to be applied for 2025:
-- Need a better way to record "don't use my card for XXX item" or "I'll write a
-  check."
 - Software error if you type half of the C/C number, then type something in
   another field, and then return to finish the C/C number.
 - After entry of a bad C/C number, the Save button remains spinning.

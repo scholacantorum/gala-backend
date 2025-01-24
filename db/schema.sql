@@ -102,7 +102,11 @@ CREATE TABLE guest (
         CHECK (payer!=id),
 
     -- Entree is the guest's choice of entree.
-    entree text NOT NULL DEFAULT ''
+    entree text NOT NULL DEFAULT '',
+
+    -- Internal notes about the guest, particularly notes about how they want
+    -- to pay for things.
+    notes text NOT NULL DEFAULT ''
 );
 CREATE INDEX guest_bidder_idx ON guest (bidder);
 CREATE INDEX guest_party_idx  ON guest (party);
