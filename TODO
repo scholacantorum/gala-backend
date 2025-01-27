@@ -16,12 +16,9 @@ weren't otherwise filled.
 
 
 Notes after 2024 gala, to be applied for 2025:
-- Exclude DAF payments from donation receipts.
 - Software error if you type half of the C/C number, then type something in
   another field, and then return to finish the C/C number.
 - After entry of a bad C/C number, the Save button remains spinning.
-- When entering auction results, auto-advance the item.
-- Add ability to sort purchases list by bidder number for easy FAN cross-check.
 - Software crashed on one person's credit card.
 - After allowing use of saved card, that radio button doesn't always remain
   selected.

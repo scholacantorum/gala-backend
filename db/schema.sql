@@ -182,7 +182,11 @@ CREATE TABLE purchase (
 
     -- Flag for whether the item has been picked up (e.g., at check-out) or
     -- otherwise redeemed.  Not relevant for donations (i.e., item.value=0).
-    pickedUp boolean NOT NULL DEFAULT 0
+    pickedUp boolean NOT NULL DEFAULT 0,
+
+    -- Flag for whether the item was paid for by someone other than nominal
+    -- payer, i.e., by a donor advised fund, trust, etc.
+    thirdParty boolean NOT NULL DEFAULT 0
 );
 CREATE INDEX purchase_guest_idx ON purchase (guest);
 CREATE INDEX purchase_payer_idx ON purchase (payer);

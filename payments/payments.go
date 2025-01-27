@@ -27,6 +27,7 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 		CardSource   string  `json:"cardSource"`
 		OtherMethod  string  `json:"otherMethod"`
 		PledgeMethod string  `json:"pledgeMethod"`
+		ThirdParty   bool    `json:"thirdParty"`
 		Total        int     `json:"total"`
 	}
 	var (
@@ -125,6 +126,7 @@ func ServePayments(w *request.ResponseWriter, r *request.Request) {
 	for _, purchase = range purchases {
 		purchase.PaymentDescription = description
 		purchase.ScholaOrder = onum
+		purchase.ThirdParty = body.ThirdParty
 		if body.PledgeMethod == "" {
 			purchase.PaymentTimestamp = now
 		}

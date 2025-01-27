@@ -117,12 +117,18 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 		ShowRegistrationNote bool
 		ShowPurchaseNote     bool
 		ShowDonationNote     bool
+		ThirdPartyTypes      string
+		ThirdParty           []*purchase
 	}
 	var (
-		purchasesCount int
-		donations      int
-		pledges        int
-		types          []string
+		purchasesCount      int
+		donations           int
+		pledges             int
+		types               []string
+		thirdPartyCount     int
+		thirdPartyDonations int
+		thirdPartyPledges   int
+		thirdPartyTypes     []string
 	)
 
 	// Fill in the template data.
@@ -139,32 +145,54 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 		}
 		if item.ID == 1 { // registration
 			purchase.Note = "*"
-			receiptData.ShowRegistrationNote = true
+			if !p.ThirdParty {
+				receiptData.ShowRegistrationNote = true
+			}
 		} else if item.Value != 0 {
 			purchase.Note = "†"
-			receiptData.ShowPurchaseNote = true
+			if !p.ThirdParty {
+				receiptData.ShowPurchaseNote = true
+			}
 		} else {
 			purchase.Note = "§"
-			receiptData.ShowDonationNote = true
-		}
-		if item.Value > p.Amount {
-			receiptData.ShowTotalValue = false
-		}
-		if p.PaymentTimestamp == "" {
-			purchase.Amount = 0
-			pledges++
-		} else {
-			purchase.Date = p.PaymentTimestamp[0:10]
-			purchase.Method = p.PaymentDescription
-			if item.Value != 0 {
-				purchasesCount++
-			} else {
-				donations++
+			if !p.ThirdParty {
+				receiptData.ShowDonationNote = true
 			}
 		}
-		receiptData.Purchases = append(receiptData.Purchases, &purchase)
-		receiptData.TotalAmount += purchase.Amount
-		receiptData.TotalValue += purchase.Value
+		if p.ThirdParty {
+			if p.PaymentTimestamp == "" {
+				purchase.Amount = 0
+				thirdPartyPledges++
+			} else {
+				purchase.Date = p.PaymentTimestamp[0:10]
+				purchase.Method = p.PaymentDescription
+				if item.Value != 0 {
+					thirdPartyCount++
+				} else {
+					thirdPartyDonations++
+				}
+			}
+			receiptData.ThirdParty = append(receiptData.ThirdParty, &purchase)
+		} else {
+			if item.Value > p.Amount {
+				receiptData.ShowTotalValue = false
+			}
+			if p.PaymentTimestamp == "" {
+				purchase.Amount = 0
+				pledges++
+			} else {
+				purchase.Date = p.PaymentTimestamp[0:10]
+				purchase.Method = p.PaymentDescription
+				if item.Value != 0 {
+					purchasesCount++
+				} else {
+					donations++
+				}
+			}
+			receiptData.Purchases = append(receiptData.Purchases, &purchase)
+			receiptData.TotalAmount += purchase.Amount
+			receiptData.TotalValue += purchase.Value
+		}
 	}
 	// Combine multiple registrations with the same payment into a single
 	// line item.
@@ -177,6 +205,20 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 			a.Quantity += b.Quantity
 			a.Item = fmt.Sprintf("Registrations (%d)", a.Quantity)
 			receiptData.Purchases = append(receiptData.Purchases[:i], receiptData.Purchases[i+1:]...)
+			// and don't increment i
+		} else {
+			i++
+		}
+	}
+	for i := 1; i < len(receiptData.ThirdParty); {
+		a := receiptData.ThirdParty[i-1]
+		b := receiptData.ThirdParty[i]
+		if a.Note == "*" && b.Note == "*" && a.Date == b.Date && a.Method == b.Method {
+			a.Amount += b.Amount
+			a.Value += b.Value
+			a.Quantity += b.Quantity
+			a.Item = fmt.Sprintf("Registrations (%d)", a.Quantity)
+			receiptData.ThirdParty = append(receiptData.ThirdParty[:i], receiptData.ThirdParty[i+1:]...)
 			// and don't increment i
 		} else {
 			i++
@@ -209,6 +251,32 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 	case 3:
 		receiptData.PurchaseTypes = fmt.Sprintf("%s, %s, and %s", types[0], types[1], types[2])
 	}
+	if thirdPartyCount > 1 {
+		thirdPartyTypes = append(thirdPartyTypes, "purchases")
+	}
+	if thirdPartyCount == 1 {
+		thirdPartyTypes = append(thirdPartyTypes, "purchase")
+	}
+	if thirdPartyDonations > 1 {
+		thirdPartyTypes = append(thirdPartyTypes, "donations")
+	}
+	if thirdPartyDonations == 1 {
+		thirdPartyTypes = append(thirdPartyTypes, "donation")
+	}
+	if thirdPartyPledges > 1 {
+		thirdPartyTypes = append(thirdPartyTypes, "pledges")
+	}
+	if thirdPartyPledges == 1 {
+		thirdPartyTypes = append(thirdPartyTypes, "pledge")
+	}
+	switch len(thirdPartyTypes) {
+	case 1:
+		receiptData.ThirdPartyTypes = thirdPartyTypes[0]
+	case 2:
+		receiptData.ThirdPartyTypes = fmt.Sprintf("%s and %s", thirdPartyTypes[0], thirdPartyTypes[1])
+	case 3:
+		receiptData.ThirdPartyTypes = fmt.Sprintf("%s, %s, and %s", thirdPartyTypes[0], thirdPartyTypes[1], thirdPartyTypes[2])
+	}
 	// Suppress the total line if there's only one item.
 	if purchasesCount+donations+pledges < 2 {
 		receiptData.TotalAmount = 0
@@ -221,47 +289,76 @@ func emitReceipt(w *request.ResponseWriter, r *request.Request, payer *model.Gue
 var payerTemplate = template.Must(template.New("payer").Parse(`
 <div class="receipt">
 <img src="https://gala.scholacantorum.org/receipt-logo.png" style="height:72px;margin-bottom:36px">
-<p>Schola Cantorum confirms the following {{ .PurchaseTypes }} from <b>{{ .Payer }}</b>:</p>
-<table style="margin-bottom:12pt">
-  <thead>
-    <tr>
-      <th style="text-align:left;vertical-align:bottom">Item</th>
-      <th style="text-align:right;vertical-align:bottom;padding-left:1em">Estimated<br>Value<br>Received</th>
-      <th style="text-align:right;vertical-align:bottom;padding-left:1em">Amount<br>Paid</th>
-      <th style="text-align:left;vertical-align:bottom;padding-left:1em">Payment<br>Date</th>
-      <th style="text-align:left;vertical-align:bottom;padding-left:1em">Payment<br>Method</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{ range .Purchases }}
+{{ if .Purchases }}
+  <p>Schola Cantorum confirms the following {{ .PurchaseTypes }} from <b>{{ .Payer }}</b>:</p>
+  <table style="margin-bottom:12pt">
+    <thead>
       <tr>
-        <td>{{ .Item }}</td>
-        <td style="text-align:right">${{ .Value }}<sup>{{ .Note }}</sup></td>
-        {{ if .Amount }}
-          <td style="text-align:right">${{ .Amount }}</td>
-          <td style="padding-left:1em;white-space:nowrap">{{ .Date }}</td>
-          <td style="padding-left:1em;white-space:nowrap">{{ .Method }}</td>
-        {{ else }}
-          <td colspan="3" style="padding-left:1em"><i>not yet paid</i></td>
-        {{ end }}
+        <th style="text-align:left;vertical-align:bottom">Item</th>
+        <th style="text-align:right;vertical-align:bottom;padding-left:1em">Estimated<br>Value<br>Received</th>
+        <th style="text-align:right;vertical-align:bottom;padding-left:1em">Amount<br>Paid</th>
+        <th style="text-align:left;vertical-align:bottom;padding-left:1em">Payment<br>Date</th>
+        <th style="text-align:left;vertical-align:bottom;padding-left:1em">Payment<br>Method</th>
       </tr>
-    {{ end }}
-    {{ if .TotalAmount }}
-      {{ if .ShowTotalValue }}
+    </thead>
+    <tbody>
+      {{ range .Purchases }}
         <tr>
-          <td style="font-weight:bold;text-align:right">TOTAL</td>
-  	  <td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalValue }}</td>
-  	  <td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalAmount }}</td>
-        </tr>
-      {{ else }}
-        <tr>
-          <td colspan="2" style="font-weight:bold;text-align:right">TOTAL</td>
-  	  <td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalAmount }}</td>
+          <td>{{ .Item }}</td>
+          <td style="text-align:right">${{ .Value }}<sup>{{ .Note }}</sup></td>
+          {{ if .Amount }}
+            <td style="text-align:right">${{ .Amount }}</td>
+            <td style="padding-left:1em;white-space:nowrap">{{ .Date }}</td>
+            <td style="padding-left:1em;white-space:nowrap">{{ .Method }}</td>
+          {{ else }}
+            <td colspan="3" style="padding-left:1em"><i>not yet paid</i></td>
+          {{ end }}
         </tr>
       {{ end }}
-    {{ end }}
-  </tbody>
-</table>
+      {{ if .TotalAmount }}
+        {{ if .ShowTotalValue }}
+          <tr>
+            <td style="font-weight:bold;text-align:right">TOTAL</td>
+            <td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalValue }}</td>
+            <td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalAmount }}</td>
+          </tr>
+        {{ else }}
+          <tr>
+            <td colspan="2" style="font-weight:bold;text-align:right">TOTAL</td>
+            <td style="font-weight:bold;text-align:right;border-top:thin solid black">${{ .TotalAmount }}</td>
+          </tr>
+        {{ end }}
+      {{ end }}
+    </tbody>
+  </table>
+{{ end }}
+{{ if .ThirdParty }}
+  <p>Schola Cantorum thanks <b>{{ .Payer }}</b> for arranging the following third-party {{ .ThirdPartyTypes }}:</p>
+  <table style="margin-bottom:12pt">
+    <thead>
+      <tr>
+        <th style="text-align:left;vertical-align:bottom">Item</th>
+        <th style="text-align:right;vertical-align:bottom;padding-left:1em">Amount<br>Paid</th>
+        <th style="text-align:left;vertical-align:bottom;padding-left:1em">Payment<br>Date</th>
+        <th style="text-align:left;vertical-align:bottom;padding-left:1em">Payment<br>Method</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{ range .ThirdParty }}
+        <tr>
+          <td>{{ .Item }}</td>
+          {{ if .Amount }}
+            <td style="text-align:right">${{ .Amount }}</td>
+            <td style="padding-left:1em;white-space:nowrap">{{ .Date }}</td>
+            <td style="padding-left:1em;white-space:nowrap">{{ .Method }}</td>
+          {{ else }}
+            <td colspan="3" style="padding-left:1em"><i>not yet paid</i></td>
+          {{ end }}
+        </tr>
+      {{ end }}
+    </tbody>
+  </table>
+{{ end }}
 {{ if .ShowRegistrationNote }}
   <div><sup>*</sup> The "estimated value received" for registration is our good faith estimate.  It may not reflect the fair market value.</div>
 {{ end }}
