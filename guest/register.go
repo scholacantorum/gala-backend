@@ -244,9 +244,9 @@ func publicRegisterReceipt(oinfo *orderInfo, guests []*model.Guest, missing bool
 	addr.Name = oinfo.name
 	addr.Address = oinfo.email
 	message.To = []string{addr.String()}
-	message.SendTo = []string{addr.Address, "admin@scholacantorum.org"}
+	message.Bcc = []string{"admin@scholacantorum.org"}
 	if bcc := config.Get("receiptBCC"); bcc != "" {
-		message.SendTo = append(message.SendTo, strings.Split(bcc, ",")...)
+		message.Bcc = append(message.Bcc, strings.Split(bcc, ",")...)
 	}
 	message.Subject = fmt.Sprintf("Schola Cantorum Order #%d", oinfo.id)
 	message.Images = [][]byte{sendmail.ScholaLogoPNG}
@@ -254,22 +254,22 @@ func publicRegisterReceipt(oinfo *orderInfo, guests []*model.Guest, missing bool
 	io.WriteString(&tb, `Dear Fabulous Schola Supporter,
 
 We are overjoyed that you will be joining us for our annual party and
-fundraiser, “Springtime Renaissance”, on Saturday, May 18, 2024, at Saratoga
+fundraiser, “Rhythms of Rio”, on Saturday, April 26, 2025, at Saratoga
 Country Club, 21990 Prospect Road, Saratoga.  The festivities commence at 6:00pm
 and will continue until 10:00pm.
 
 `)
-	io.WriteString(&hb, `<!DOCTYPE html><html><head><style>p{margin:0}p+p,table+p,pre+p{margin-top:1em}table{border-collapse:collapse;margin-top:0.75em}td,th{text-align:left;padding:0.25em 1em 0 0;line-height:1}th{font-weight:normal;text-decoration:underline}pre{margin:0}</style><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="cid:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div><p>Dear Fabulous Schola Supporter,</p><p>We are overjoyed that you will be joining us for our annual party and fundraiser, “Springtime Renaissance”, on Saturday, May 18, 2024, at Saratoga Country Club, 21990 Prospect Road, Saratoga (see <a href="https://www.google.com/maps/place/Saratoga+Country+Club/@37.284146,-122.0706404,14z/data=!4m6!3m5!1s0x808fb4c4b0258435:0x39980b6fabeaf7de!8m2!3d37.284146!4d-122.052616!16s%2Fg%2F1tgx6vjd?entry=ttu">map</a>).  The festivities commence at 6:00pm and will continue until 10:00pm.</p>`)
+	io.WriteString(&hb, `<!DOCTYPE html><html><head><style>p{margin:0}p+p,table+p,pre+p{margin-top:1em}table{border-collapse:collapse;margin-top:0.75em}td,th{text-align:left;padding:0.25em 1em 0 0;line-height:1}th{font-weight:normal;text-decoration:underline}pre{margin:0}</style><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="cid:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div><p>Dear Fabulous Schola Supporter,</p><p>We are overjoyed that you will be joining us for our annual party and fundraiser, “Rhythms of Rio”, on Saturday, April 26, 2025, at Saratoga Country Club, 21990 Prospect Road, Saratoga (see <a href="https://www.google.com/maps/place/Saratoga+Country+Club/@37.284146,-122.0706404,14z/data=!4m6!3m5!1s0x808fb4c4b0258435:0x39980b6fabeaf7de!8m2!3d37.284146!4d-122.052616!16s%2Fg%2F1tgx6vjd?entry=ttu">map</a>).  The festivities commence at 6:00pm and will continue until 10:00pm.</p>`)
 	switch len(guests) {
 	case 1:
-		io.WriteString(&tb, "You have purchased one ticket for $175:\n\n")
-		io.WriteString(&hb, "<p>You have purchased one ticket for $175:</p>")
+		io.WriteString(&tb, "You have purchased one ticket for $215:\n\n")
+		io.WriteString(&hb, "<p>You have purchased one ticket for $215:</p>")
 	case 10:
-		io.WriteString(&tb, "You have purchased a table for the following 10 guests at $175 per person:\n\n")
-		io.WriteString(&hb, "<p>You have purchased a table for the following 10 guests at $175 per person:</p>")
+		io.WriteString(&tb, "You have purchased a table for the following 10 guests at $215 per person:\n\n")
+		io.WriteString(&hb, "<p>You have purchased a table for the following 10 guests at $215 per person:</p>")
 	default:
-		fmt.Fprintf(&tb, "You have purchased %d tickets for the following guests at $175 per person:\n\n", len(guests))
-		fmt.Fprintf(&hb, "<p>You have purchased %d tickets for the following guests at $175 per person:</p>", len(guests))
+		fmt.Fprintf(&tb, "You have purchased %d tickets for the following guests at $215 per person:\n\n", len(guests))
+		fmt.Fprintf(&hb, "<p>You have purchased %d tickets for the following guests at $215 per person:</p>", len(guests))
 	}
 	tw = tabwriter.NewWriter(&tb, 0, 0, 2, ' ', 0)
 	io.WriteString(tw, "\tGuest Name\tEntrée\n")
@@ -287,20 +287,20 @@ and will continue until 10:00pm.
 		fmt.Fprintf(&hb, "<p><u>Special Requests</u></p><pre>%s</pre>", html.EscapeString(guests[0].Requests))
 	}
 	if missing {
-		io.WriteString(&tb, `We need all guest names and entree choices no later than May 5.  We would
+		io.WriteString(&tb, `We need all guest names and entree choices no later than April 12.  We would
 also like to know of any dietary restrictions or seating requests.  To supply
 those, or to correct any errors, please reply to this email.  You can also call
 the Schola office at (650) 254–1700.
 
 `)
-		io.WriteString(&hb, `<p>We need all guest names and entree choices no later than May 5.  We would also like to know of any dietary restrictions or seating requests.  To supply those, or to correct any errors, please reply to this email.  You can also call the Schola office at (650)&nbsp;254–1700.</p>`)
+		io.WriteString(&hb, `<p>We need all guest names and entree choices no later than April 12.  We would also like to know of any dietary restrictions or seating requests.  To supply those, or to correct any errors, please reply to this email.  You can also call the Schola office at (650)&nbsp;254–1700.</p>`)
 	} else {
 		io.WriteString(&tb, `If you need to make any corrections, or add any dietary restrictions or seating
-requests, please do so by May 5.  You can reply to this email, or call the
+requests, please do so by April 12.  You can reply to this email, or call the
 Schola Office at (650) 254–1700.
 
 `)
-		io.WriteString(&hb, `<p>If you need to make any corrections, or add any dietary restrictions or seating requests, please do so by May 5.  You can reply to this email, or call the Schola Office at (650)&nbsp;254–1700.</p>`)
+		io.WriteString(&hb, `<p>If you need to make any corrections, or add any dietary restrictions or seating requests, please do so by April 12.  You can reply to this email, or call the Schola Office at (650)&nbsp;254–1700.</p>`)
 	}
 	fmt.Fprintf(&tb, "For your records, you paid a total of $%d on %s by %s.\n\n", oinfo.total/100, time.Now().Format("January 2, 2006"), oinfo.card)
 	fmt.Fprintf(&hb, `<p>For your records, you paid a total of $%d on %s by %s.</p>`, oinfo.total/100, time.Now().Format("January 2, 2006"), oinfo.card)
@@ -324,10 +324,10 @@ func entreeName(code string) string {
 		return "(not yet selected)"
 	case "filet":
 		return "Filet Mignon"
-	case "bass":
-		return "Sea Bass"
-	case "gnocchi":
-		return "Gnocchi"
+	case "salmon":
+		return "Salmon"
+	case "vegan":
+		return "Vegan"
 	default:
 		return code
 	}

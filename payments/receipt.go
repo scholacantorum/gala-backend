@@ -44,7 +44,7 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 	emailData.Card = payer.StripeDescription
 	emailData.Purchases = make([]purchase, len(purchases))
 	for i, p := range purchases {
-		var item = model.FetchItem(r.Tx, p.ItemID)
+		item := model.FetchItem(r.Tx, p.ItemID)
 		emailData.Purchases[i] = purchase{
 			Item:   item.Name,
 			Bidder: model.FetchGuest(r.Tx, p.GuestID).Name,
@@ -67,9 +67,8 @@ func sendChargeReceipt(r *request.Request, onum int, payer *model.Guest, purchas
 	message.From = "Schola Cantorum <admin@scholacantorum.org>"
 	addr.Name = payer.Name
 	addr.Address = payer.Email
-	message.SendTo = strings.Split(config.Get("emailTo"), ",")
-	message.SendTo = append(message.SendTo, payer.Email)
 	message.To = []string{addr.String()}
+	message.Bcc = strings.Split(config.Get("emailTo"), ",")
 	message.Subject = fmt.Sprintf("Schola Cantorum Order #%d", onum)
 	message.ReplyTo = "Schola Cantorum <info@scholacantorum.org>"
 	message.Images = [][]byte{sendmail.ScholaLogoPNG}
@@ -126,6 +125,7 @@ var tableTemplate = `
   {{ end }}
 </p>
 `
+
 var emailTemplate = template.Must(template.New("email").Parse(`
 <!DOCTYPE html><html><head><body style="margin:0"><div style="width:600px;margin:0 auto"><div style="margin-bottom:24px"><img src="CID:IMG0" alt="[Schola Cantorum]" style="border-width:0"></div>
 <p>Dear {{ .Payer }},</p>

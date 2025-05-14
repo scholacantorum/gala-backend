@@ -16,14 +16,6 @@ weren't otherwise filled.
 
 
 Notes after 2024 gala, to be applied for 2025:
-- Software error if you type half of the C/C number, then type something in
-  another field, and then return to finish the C/C number.
-- After entry of a bad C/C number, the Save button remains spinning.
-- Software crashed on one person's credit card.
-- After allowing use of saved card, that radio button doesn't always remain
-  selected.
-- Show better statistics, e.g. received vs. pledged.
-- CHECK constraint failed: payer is NULL or useCard.  See log 5/18/2024 21:27.
 - Software generate the reports needed for offline fallback.
 - Printing of entree cards.
 Won't implement until this year has a need:
@@ -33,3 +25,5 @@ Not going to happen without a rewrite:
 - Keep track of who has checked in (couples don't always check in together), and
   show on table map to be able to see open seats.
 - Handle last-minute notifications of "not coming".
+- After allowing use of saved card, that radio button doesn't always remain
+  selected.  Reproducible, but seems to be a Vue error.

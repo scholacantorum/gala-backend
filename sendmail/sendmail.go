@@ -8,12 +8,11 @@ import (
 	"io"
 	"mime/multipart"
 	"mime/quotedprintable"
-	"net/smtp"
 	"net/textproto"
 	"os"
 	"strings"
 
-	"github.com/scholacantorum/gala-backend/config"
+	scholaemail "github.com/scholacantorum/schola-email"
 )
 
 //go:embed "mail-logo.png"
@@ -23,11 +22,6 @@ var ScholaLogoPNG []byte
 
 // Message is an outgoing message.
 type Message struct {
-	// SendTo is the list of addresses to which to send the message.  It
-	// does not have to include all of the To, Cc, or Bcc addresses, and it
-	// can contain others.  Note that these strings should be bare
-	// addresses.
-	SendTo []string
 	// From is the content of the From: header.
 	From string
 	// To is the content of the To: header.  Multiple strings will be joined
@@ -59,18 +53,7 @@ type Message struct {
 // Send sends an email message.
 func (m *Message) Send() (err error) {
 	by := m.render()
-	err = smtp.SendMail(
-		config.Get("smtpServer"),
-		smtp.PlainAuth("",
-			config.Get("smtpUsername"),
-			config.Get("smtpPassword"),
-			config.Get("smtpHost"),
-		),
-		config.Get("smtpFromAddr"),
-		m.SendTo,
-		by,
-	)
-	if err != nil {
+	if err = scholaemail.Send(by); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR sending email: %s\n", err)
 	}
 	return err

@@ -7,13 +7,13 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // Open opens the database and returns a handle to it.
 func Open(path string) (*sqlx.DB, error) {
 	dburl := "file:" + path + "?cache=shared&mode=rw&_busy_timeout=1000&_txlock=immediate&_foreign_keys=1"
-	return sqlx.Connect("sqlite3", dburl)
+	return sqlx.Connect("sqlite", dburl)
 }
 
 // Time is a wrapper around time.Time that stores in the database as integer
